@@ -259,3 +259,84 @@ function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+export async function sendBuyerCompletedEmails(args: {
+  conversationId: string;
+  homeownerId: string | null;
+  homeownerName: string | null;
+  homeownerEmail: string | null;
+  preferredCity: string | null;
+  budget: string | null;
+  timeline: string | null;
+  qualification: string | null;
+  locale: string | null;
+}) {
+  const name = args.homeownerName || "there";
+  const isFr = args.locale === "fr";
+
+  if (args.homeownerEmail) {
+    const subject = isFr
+      ? "Nous avons bien reçu votre profil acheteur Estate Valora"
+      : "We received your Estate Valora buyer profile";
+
+    const html = isFr
+      ? `
+      <div style="font-family:Georgia,serif;color:#111;line-height:1.5">
+        <p>Bonjour ${escapeHtml(name)},</p>
+        <p>Merci d'avoir partagé vos préférences d'achat avec Estate Valora.</p>
+        <p>Secteur: <strong>${escapeHtml(args.preferredCity || "—")}</strong><br/>
+        Budget: <strong>${escapeHtml(args.budget || "—")}</strong><br/>
+        Échéancier: <strong>${escapeHtml(args.timeline || "—")}</strong></p>
+        <p>L'équipe d'Ashkan pourra vous contacter pour une consultation téléphonique ou vidéo.</p>
+      </div>`
+      : `
+      <div style="font-family:Georgia,serif;color:#111;line-height:1.5">
+        <p>Hi ${escapeHtml(name)},</p>
+        <p>Thank you for sharing your buyer preferences with Estate Valora.</p>
+        <p>Area: <strong>${escapeHtml(args.preferredCity || "—")}</strong><br/>
+        Budget: <strong>${escapeHtml(args.budget || "—")}</strong><br/>
+        Timeline: <strong>${escapeHtml(args.timeline || "—")}</strong></p>
+        <p>Ashkan’s team can follow up for a phone or video consultation.</p>
+      </div>`;
+
+    await sendEmail({
+      to: args.homeownerEmail,
+      subject,
+      html,
+      text: isFr
+        ? `Bonjour ${name}, merci pour votre profil acheteur Estate Valora.`
+        : `Hi ${name}, thank you for your Estate Valora buyer profile.`,
+      trigger: "buyer_completed",
+      conversationId: args.conversationId,
+      homeownerId: args.homeownerId,
+    });
+  }
+
+  const brokerage = brokerageInbox();
+  if (brokerage) {
+    await sendEmail({
+      to: brokerage,
+      subject: `New Estate Valora BUYER lead${
+        args.preferredCity ? `: ${args.preferredCity}` : ""
+      }`,
+      html: `
+        <div style="font-family:system-ui,sans-serif;line-height:1.5">
+          <p><strong>New buyer lead</strong> (${escapeHtml(
+            args.qualification || "—"
+          )})</p>
+          <p>Name: ${escapeHtml(args.homeownerName || "—")}<br/>
+          Email: ${escapeHtml(args.homeownerEmail || "—")}<br/>
+          Area: ${escapeHtml(args.preferredCity || "—")}<br/>
+          Budget: ${escapeHtml(args.budget || "—")}<br/>
+          Timeline: ${escapeHtml(args.timeline || "—")}<br/>
+          Language: ${escapeHtml(args.locale || "en")}</p>
+          <p>Source: EstateValora – AI Buyer Consultation</p>
+        </div>
+      `,
+      text: `New BUYER lead. ${args.homeownerName || ""} ${args.homeownerEmail || ""} ${args.preferredCity || ""}`,
+      trigger: "buyer_completed",
+      conversationId: args.conversationId,
+      homeownerId: args.homeownerId,
+    });
+  }
+}

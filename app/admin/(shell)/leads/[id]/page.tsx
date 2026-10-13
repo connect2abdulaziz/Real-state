@@ -42,7 +42,13 @@ export default async function AdminLeadDetailPage({
               {lead.phone ? ` · ${lead.phone}` : ""}
             </p>
           </div>
-          <PipelineBadge status={lead.pipeline} />
+          <div className="flex flex-wrap items-center gap-2">
+            <SoftBadge tone={lead.leadType === "buyer" ? "buyer" : "seller"}>
+              {lead.leadType === "buyer" ? "Buyer" : "Seller"}
+            </SoftBadge>
+            {lead.locale === "fr" && <SoftBadge tone="info">FR</SoftBadge>}
+            <PipelineBadge status={lead.pipeline} />
+          </div>
         </div>
       </div>
 
@@ -73,29 +79,42 @@ export default async function AdminLeadDetailPage({
           </dl>
         </Panel>
 
-        <Panel title="Property">
+        <Panel title="Property / search">
           <dl className="px-4 sm:px-5 py-4 space-y-3 text-[13px]">
-            <Row label="Address" value={property?.address || lead.address} />
-            <Row label="Type" value={property?.property_type} />
             <Row
-              label="Beds / baths"
-              value={
-                property
-                  ? `${property.bedrooms ?? "—"} / ${property.bathrooms ?? "—"}`
-                  : null
-              }
+              label={lead.leadType === "buyer" ? "Area" : "Address"}
+              value={property?.address || lead.address}
             />
-            <Row
-              label="Living area"
-              value={
-                property?.living_area_sqft
-                  ? `${property.living_area_sqft} sq ft`
-                  : null
-              }
-            />
-            <Row label="Year built" value={property?.year_built?.toString()} />
-            <Row label="Condition" value={property?.condition} />
-            <Row label="Ownership" value={property?.ownership} />
+            <Row label="Type" value={property?.property_type || lead.propertyType} />
+            {lead.leadType === "buyer" ? (
+              <>
+                <Row label="Budget" value={lead.buyerBudget} />
+                <Row label="Timeline" value={lead.buyingTimeline} />
+                <Row label="Qualification" value={lead.buyerQualification} />
+              </>
+            ) : (
+              <>
+                <Row
+                  label="Beds / baths"
+                  value={
+                    property
+                      ? `${property.bedrooms ?? "—"} / ${property.bathrooms ?? "—"}`
+                      : null
+                  }
+                />
+                <Row
+                  label="Living area"
+                  value={
+                    property?.living_area_sqft
+                      ? `${property.living_area_sqft} sq ft`
+                      : null
+                  }
+                />
+                <Row label="Year built" value={property?.year_built?.toString()} />
+                <Row label="Condition" value={property?.condition} />
+                <Row label="Ownership" value={property?.ownership} />
+              </>
+            )}
           </dl>
         </Panel>
 
@@ -116,6 +135,7 @@ export default async function AdminLeadDetailPage({
         </Panel>
       </div>
 
+      {lead.leadType === "seller" && (
       <Panel
         title="Valuation"
         subtitle={
@@ -202,6 +222,7 @@ export default async function AdminLeadDetailPage({
           </div>
         )}
       </Panel>
+      )}
 
       {consultations.length > 0 && (
         <Panel title="Consultations" subtitle="Update status as appointments progress">

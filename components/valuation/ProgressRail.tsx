@@ -2,20 +2,30 @@
 
 import Link from "next/link";
 import { Home, Check, Info, Sparkles } from "lucide-react";
-import { SECTIONS } from "@/lib/valuation/steps";
 
 export function ProgressRail({
   currentSection,
   progressLabel,
+  sections: sectionsProp,
 }: {
   currentSection: string;
   progressLabel?: string;
+  sections?: readonly string[];
 }) {
-  const sections: readonly string[] = SECTIONS;
+  const sections: readonly string[] = sectionsProp?.length
+    ? sectionsProp
+    : [
+        "Property",
+        "Characteristics",
+        "Details",
+        "Condition",
+        "Motivation",
+        "Contact",
+      ];
   const currentIdx = sections.indexOf(currentSection);
   const doneCount =
     currentSection === "done" ? sections.length : Math.max(0, currentIdx);
-  const pct = Math.round((doneCount / sections.length) * 100);
+  const pct = Math.round((doneCount / Math.max(sections.length, 1)) * 100);
 
   return (
     <aside className="hidden lg:flex flex-col w-[280px] xl:w-[300px] shrink-0 h-full min-h-0">

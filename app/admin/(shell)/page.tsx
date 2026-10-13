@@ -311,7 +311,7 @@ export default async function AdminOverviewPage() {
         }
       >
         {recent.length === 0 ? (
-          <EmptyState message="No leads yet — run a valuation or the smoke test." />
+          <EmptyState message="No leads yet — run a valuation from the homeowner flow." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">

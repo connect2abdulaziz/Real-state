@@ -84,7 +84,7 @@ function buildMessage(args: {
 }
 
 function buildTags(answers: Answers, wantsReview?: boolean): string[] {
-  const tags = ["EstateValora", "AI Valuation"];
+  const tags = ["EstateValora", "Seller Lead", "AI Valuation"];
   if (answers.motivation) tags.push(`Motivation: ${answers.motivation}`);
   if (answers.sellingTimeline) tags.push(`Timeline: ${answers.sellingTimeline}`);
   if (wantsReview) tags.push("Consultation Requested");

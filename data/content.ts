@@ -17,16 +17,17 @@ export const siteContent = {
   ],
 
   hero: {
-    titleBefore: "Sell your home with",
+    titleBefore: "Buy or sell with",
     titleItalic: "clarity.",
-    description: "Understand your range before you decide.",
-    cta: "See my value range",
+    description:
+      "Sellers get a preliminary value range. Buyers get a guided consultation path — one conversation.",
+    cta: "Start the conversation",
     ctaHref: "/valuation",
     scrollLabel: "SCROLL TO EXPLORE",
     /** Confirm remaining figures with client — $25M+ is confirmed */
     stats: [
       { value: "$25M+", label: "Sold" },
-      { value: "15+", label: "Years guiding sellers" },
+      { value: "15+", label: "Years of guidance" },
       { value: "92%", label: "Felt clearer after" },
     ],
   },
@@ -62,8 +63,8 @@ export const siteContent = {
         { text: "and guidance helps you decide", tone: "strong" },
       ],
     ],
-    body: "We create a space where insight and expertise exist in balance. Every step is designed to slow the guesswork — bringing clarity, privacy, and quiet confidence before you decide what comes next for your home.",
-    cta: "Start Valuation",
+    body: "We create a space where insight and expertise exist in balance. Whether you are selling or buying, every step is designed to slow the guesswork — bringing clarity, privacy, and quiet confidence before you decide what comes next.",
+    cta: "Start conversation",
     ctaHref: "/valuation",
   },
 
@@ -77,23 +78,23 @@ export const siteContent = {
     {
       number: "01",
       tag: "INPUT",
-      title: "Tell us about your home",
+      title: "Tell us what you need",
       description:
-        "Share a few details about your property through a guided conversation.",
+        "Choose buy or sell, then share details through a guided conversation.",
     },
     {
       number: "02",
       tag: "ANALYSIS",
-      title: "Understand estimated range",
+      title: "Get clarity fast",
       description:
-        "See an estimated valuation range shaped by the information you provide.",
+        "Sellers see an estimated value range. Buyers share preferences for a tailored follow-up.",
     },
     {
       number: "03",
       tag: "OUTCOME",
       title: "Choose what comes next",
       description:
-        "Continue with a personal consultation when you're ready to go deeper.",
+        "Book a phone or video consultation with Ashkan when you're ready to go deeper.",
     },
   ],
 

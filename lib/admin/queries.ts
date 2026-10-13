@@ -14,6 +14,7 @@ import type {
   TranscriptMessage,
   ValuationRecord,
 } from "@/lib/types";
+import { qualifyBuyer } from "@/lib/buyer/steps";
 
 type HomeownerRow = {
   id: string;
@@ -26,6 +27,8 @@ type HomeownerRow = {
 };
 
 type ConversationJoin = ConversationRecord & {
+  lead_type?: "seller" | "buyer" | null;
+  locale?: "en" | "fr" | null;
   homeowners: HomeownerRow | HomeownerRow[] | null;
   properties: PropertyRecord | PropertyRecord[] | null;
   valuations: ValuationRecord | ValuationRecord[] | null;
@@ -54,12 +57,17 @@ function toLeadRow(c: ConversationJoin): AdminLeadRow {
   const valuation = latestByCreated(c.valuations);
   const consultation = latestByCreated(c.consultations);
   const answers = (c.answers || {}) as Answers;
+  const leadType: "seller" | "buyer" =
+    c.lead_type === "buyer" || answers.intent === "buy" ? "buyer" : "seller";
+  const buyerQ = leadType === "buyer" ? qualifyBuyer(answers) : null;
 
   return {
     conversationId: c.id,
     createdAt: c.created_at,
     updatedAt: c.updated_at,
     conversationStatus: c.status,
+    leadType,
+    locale: c.locale === "fr" || answers.locale === "fr" ? "fr" : "en",
     homeownerId: homeowner?.id ?? c.homeowner_id,
     name: homeowner?.name ?? answers.homeownerName ?? null,
     email: homeowner?.email ?? answers.homeownerEmail ?? null,
@@ -67,8 +75,16 @@ function toLeadRow(c: ConversationJoin): AdminLeadRow {
     fubPersonId: homeowner?.fub_person_id ?? null,
     fubSyncedAt: homeowner?.fub_synced_at ?? null,
     propertyId: property?.id ?? null,
-    address: property?.address ?? answers.streetAddress ?? null,
-    propertyType: property?.property_type ?? answers.propertyType ?? null,
+    address:
+      property?.address ??
+      answers.streetAddress ??
+      answers.preferredCity ??
+      null,
+    propertyType:
+      property?.property_type ??
+      answers.propertyType ??
+      answers.buyerPropertyType ??
+      null,
     valuationId: valuation?.id ?? null,
     valuationStatus: valuation?.status ?? null,
     valueLow: valuation?.estimated_value_low ?? null,
@@ -81,6 +97,9 @@ function toLeadRow(c: ConversationJoin): AdminLeadRow {
     channel: consultation?.channel ?? null,
     preferredTime: consultation?.preferred_time ?? null,
     motivation: answers.motivation ?? null,
+    buyerBudget: answers.buyerBudget ?? null,
+    buyingTimeline: answers.buyingTimeline ?? null,
+    buyerQualification: buyerQ?.label ?? null,
     pipeline: derivePipeline({
       conversationStatus: c.status,
       valuationStatus: valuation?.status ?? null,
@@ -90,7 +109,7 @@ function toLeadRow(c: ConversationJoin): AdminLeadRow {
 }
 
 const LEAD_SELECT = `
-  id, homeowner_id, status, transcript, answers, created_at, updated_at,
+  id, homeowner_id, status, transcript, answers, created_at, updated_at, lead_type, locale,
   homeowners ( id, name, email, phone, fub_person_id, fub_synced_at, created_at ),
   properties ( * ),
   valuations ( * ),
@@ -202,6 +221,7 @@ export async function fetchAdminAnalytics(): Promise<AdminAnalytics> {
 export async function fetchAdminLeads(opts?: {
   q?: string;
   pipeline?: string;
+  leadType?: string;
   limit?: number;
   page?: number;
   pageSize?: number;
@@ -214,13 +234,65 @@ export async function fetchAdminLeads(opts?: {
 }> {
   const supabase = createAdminClient();
   const pageSize = opts?.pageSize ?? 10;
-  const { data, error } = await supabase
+  let query = supabase
     .from("conversations")
     .select(LEAD_SELECT)
     .order("created_at", { ascending: false })
     .limit(opts?.limit ?? 500);
 
-  if (error) throw new Error(error.message);
+  if (opts?.leadType === "buyer" || opts?.leadType === "seller") {
+    query = query.eq("lead_type", opts.leadType);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    // Migration 0006 may not be applied — retry without lead_type filter/columns
+    const fallback = await supabase
+      .from("conversations")
+      .select(
+        `
+      id, homeowner_id, status, transcript, answers, created_at, updated_at,
+      homeowners ( id, name, email, phone, fub_person_id, fub_synced_at, created_at ),
+      properties ( * ),
+      valuations ( * ),
+      consultations ( * )
+    `
+      )
+      .order("created_at", { ascending: false })
+      .limit(opts?.limit ?? 500);
+    if (fallback.error) throw new Error(fallback.error.message);
+    let rows = ((fallback.data || []) as unknown as ConversationJoin[]).map(
+      toLeadRow
+    );
+    if (opts?.leadType === "buyer" || opts?.leadType === "seller") {
+      rows = rows.filter((r) => r.leadType === opts.leadType);
+    }
+    if (opts?.pipeline && opts.pipeline !== "all") {
+      rows = rows.filter((r) => r.pipeline === opts.pipeline);
+    }
+    if (opts?.q?.trim()) {
+      const q = opts.q.trim().toLowerCase();
+      rows = rows.filter((r) => {
+        const hay = [r.name, r.email, r.phone, r.address, r.motivation, r.buyerBudget]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(q);
+      });
+    }
+    if (opts?.page == null && opts?.limit != null && opts.pageSize == null) {
+      return {
+        rows: rows.slice(0, opts.limit),
+        total: rows.length,
+        page: 1,
+        pageSize: opts.limit,
+        pages: 1,
+      };
+    }
+    const { slicePage } = await import("./pagination");
+    return slicePage(rows, opts?.page ?? 1, pageSize);
+  }
 
   let rows = ((data || []) as unknown as ConversationJoin[]).map(toLeadRow);
 
@@ -231,7 +303,14 @@ export async function fetchAdminLeads(opts?: {
   if (opts?.q?.trim()) {
     const q = opts.q.trim().toLowerCase();
     rows = rows.filter((r) => {
-      const hay = [r.name, r.email, r.phone, r.address, r.motivation]
+      const hay = [
+        r.name,
+        r.email,
+        r.phone,
+        r.address,
+        r.motivation,
+        r.buyerBudget,
+      ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -239,7 +318,6 @@ export async function fetchAdminLeads(opts?: {
     });
   }
 
-  // Legacy callers that only want a slice without pagination meta
   if (opts?.page == null && opts?.limit != null && opts.pageSize == null) {
     return {
       rows: rows.slice(0, opts.limit),

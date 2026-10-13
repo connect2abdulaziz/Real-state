@@ -157,3 +157,23 @@ export async function sendConsultationSms(args: {
     consultationId: args.consultationId,
   });
 }
+
+export async function sendBuyerSms(args: {
+  conversationId: string;
+  homeownerId: string | null;
+  phone: string | null;
+  locale?: string | null;
+}) {
+  if (!args.phone?.trim()) return;
+
+  const isFr = args.locale === "fr";
+  await sendSms({
+    to: args.phone.trim(),
+    body: isFr
+      ? "Estate Valora: nous avons reçu votre profil acheteur. L'équipe d'Ashkan pourra vous contacter bientôt."
+      : "Estate Valora: we received your buyer profile. Ashkan’s team may follow up soon.",
+    trigger: "buyer_completed",
+    conversationId: args.conversationId,
+    homeownerId: args.homeownerId,
+  });
+}

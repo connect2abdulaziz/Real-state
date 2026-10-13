@@ -17,6 +17,8 @@ export function derivePipeline(args: {
   if (args.consultationStatus === "requested") return "consult_requested";
   if (args.valuationStatus === "failed") return "failed";
   if (args.valuationStatus === "completed") return "valued";
+  // Buyer (or seller without valuation yet) who finished the chat
+  if (args.conversationStatus === "completed") return "valued";
   return "in_progress";
 }
 

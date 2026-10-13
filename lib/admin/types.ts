@@ -37,6 +37,8 @@ export interface AdminLeadRow {
   createdAt: string;
   updatedAt: string;
   conversationStatus: ConversationStatus;
+  leadType: "seller" | "buyer";
+  locale: "en" | "fr";
   homeownerId: string | null;
   name: string | null;
   email: string | null;
@@ -58,6 +60,9 @@ export interface AdminLeadRow {
   channel: ConsultationChannel | null;
   preferredTime: string | null;
   motivation: string | null;
+  buyerBudget: string | null;
+  buyingTimeline: string | null;
+  buyerQualification: string | null;
   pipeline: LeadPipelineStatus;
 }
 

@@ -1,15 +1,18 @@
-import { Answers, ValuationRecord } from "@/lib/types";
-import { formatCad } from "@/lib/report/types";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { syncConsultationToFub, syncValuationLeadToFub } from "@/lib/integrations/fub/sync";
 import {
   sendConsultationEmails,
   sendValuationCompletedEmails,
+  sendBuyerCompletedEmails,
 } from "@/lib/integrations/email/send";
 import {
   sendConsultationSms,
   sendValuationSms,
-} from "@/lib/integrations/sms/send";
+  sendBuyerSms,
+} from "@/lib/integrations/sms/send";import { syncBuyerLeadToFub } from "@/lib/integrations/fub/buyer-sync";
+import { qualifyBuyer } from "@/lib/buyer/steps";
+import { Answers, ValuationRecord } from "@/lib/types";
+import { formatCad } from "@/lib/report/types";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { syncConsultationToFub, syncValuationLeadToFub } from "@/lib/integrations/fub/sync";
 
 function appBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_APP_URL?.trim()) {
@@ -182,6 +185,47 @@ export function runAfterConsultation(args: {
       });
     } catch (err) {
       console.error("Phase B consultation side-effects failed:", err);
+    }
+  })();
+}
+
+/**
+ * Side-effects after a buyer conversation completes (no valuation).
+ */
+export function runAfterBuyerCompleted(args: {
+  conversationId: string;
+  homeownerId: string | null;
+  answers: Answers;
+}): void {
+  void (async () => {
+    try {
+      await syncBuyerLeadToFub(args);
+
+      const q = qualifyBuyer(args.answers);
+      const name = args.answers.homeownerName || null;
+      const email = args.answers.homeownerEmail || null;
+      const phone = args.answers.homeownerPhone || null;
+
+      await sendBuyerCompletedEmails({
+        conversationId: args.conversationId,
+        homeownerId: args.homeownerId,
+        homeownerName: name,
+        homeownerEmail: email,
+        preferredCity: args.answers.preferredCity || null,
+        budget: args.answers.buyerBudget || null,
+        timeline: args.answers.buyingTimeline || null,
+        qualification: q.label,
+        locale: args.answers.locale || "en",
+      });
+
+      await sendBuyerSms({
+        conversationId: args.conversationId,
+        homeownerId: args.homeownerId,
+        phone,
+        locale: args.answers.locale,
+      });
+    } catch (err) {
+      console.error("Phase B buyer side-effects failed:", err);
     }
   })();
 }

@@ -14,21 +14,32 @@ const PIPELINES = [
   { value: "abandoned", label: "Abandoned" },
 ];
 
+const LEAD_TYPES = [
+  { value: "all", label: "All leads" },
+  { value: "seller", label: "Sellers" },
+  { value: "buyer", label: "Buyers" },
+];
+
 export function LeadsFilters({
   q,
   pipeline,
+  leadType,
 }: {
   q: string;
   pipeline: string;
+  leadType: string;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState(q);
 
-  function apply(nextQ: string, nextPipeline: string) {
+  function apply(nextQ: string, nextPipeline: string, nextLeadType: string) {
     const params = new URLSearchParams();
     if (nextQ.trim()) params.set("q", nextQ.trim());
     if (nextPipeline && nextPipeline !== "all") {
       params.set("pipeline", nextPipeline);
+    }
+    if (nextLeadType && nextLeadType !== "all") {
+      params.set("type", nextLeadType);
     }
     const qs = params.toString();
     router.push(qs ? `/admin/leads?${qs}` : "/admin/leads");
@@ -40,7 +51,7 @@ export function LeadsFilters({
         className="relative flex-1"
         onSubmit={(e) => {
           e.preventDefault();
-          apply(query, pipeline);
+          apply(query, pipeline, leadType);
         }}
       >
         <Search
@@ -55,8 +66,19 @@ export function LeadsFilters({
         />
       </form>
       <select
+        value={leadType}
+        onChange={(e) => apply(query, pipeline, e.target.value)}
+        className="rounded-md border border-white/10 bg-surface/60 px-3 py-2.5 text-[13px] outline-none focus:border-electric/40 sm:w-36 transition-colors"
+      >
+        {LEAD_TYPES.map((p) => (
+          <option key={p.value} value={p.value}>
+            {p.label}
+          </option>
+        ))}
+      </select>
+      <select
         value={pipeline}
-        onChange={(e) => apply(query, e.target.value)}
+        onChange={(e) => apply(query, e.target.value, leadType)}
         className="rounded-md border border-white/10 bg-surface/60 px-3 py-2.5 text-[13px] outline-none focus:border-electric/40 sm:w-48 transition-colors"
       >
         {PIPELINES.map((p) => (

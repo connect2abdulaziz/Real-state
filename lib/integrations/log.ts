@@ -5,7 +5,8 @@ export type IntegrationTrigger =
   | "valuation_completed"
   | "consultation_requested"
   | "consultation_declined"
-  | "report_ready";
+  | "report_ready"
+  | "buyer_completed";
 export type IntegrationStatus = "pending" | "success" | "failed" | "skipped";
 
 export async function logIntegrationEvent(args: {

@@ -3,15 +3,19 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Answers, TranscriptMessage } from "@/lib/types";
 import { buildPropertyInsert } from "@/lib/valuation/compose-property";
 import { runValuation } from "@/lib/valuation/run-valuation";
-import { runAfterValuationCompleted } from "@/lib/integrations/phase-b";
+import {
+  runAfterValuationCompleted,
+  runAfterBuyerCompleted,
+} from "@/lib/integrations/phase-b";
+import { normalizeLocale } from "@/lib/i18n/copy";
 
 interface PatchBody {
-  /** New messages to append to the transcript (AI question, notes, homeowner's reply). */
   appendTranscript?: TranscriptMessage[];
-  /** New/updated answers to merge into the conversation's structured record. */
   answers?: Answers;
-  /** Set true on the final submit to close out the conversation. */
   complete?: boolean;
+  /** Optional metadata updates before completion. */
+  leadType?: "seller" | "buyer";
+  locale?: "en" | "fr";
 }
 
 export async function PATCH(
@@ -23,7 +27,7 @@ export async function PATCH(
 
   const { data: existing, error: fetchError } = await supabase
     .from("conversations")
-    .select("id, transcript, answers")
+    .select("id, transcript, answers, lead_type, locale")
     .eq("id", params.id)
     .single();
 
@@ -40,11 +44,28 @@ export async function PATCH(
     ...(body.answers ?? {}),
   };
 
+  const leadType: "seller" | "buyer" =
+    body.leadType === "buyer" || body.leadType === "seller"
+      ? body.leadType
+      : mergedAnswers.intent === "buy"
+        ? "buyer"
+        : mergedAnswers.intent === "sell"
+          ? "seller"
+          : ((existing.lead_type as "seller" | "buyer") || "seller");
+  const locale =
+    body.locale ||
+    normalizeLocale(mergedAnswers.locale || existing.locale);
+
+  mergedAnswers.intent = leadType === "buyer" ? "buy" : "sell";
+  mergedAnswers.locale = locale;
+
   const { error: updateError } = await supabase
     .from("conversations")
     .update({
       transcript: mergedTranscript,
       answers: mergedAnswers,
+      lead_type: leadType,
+      locale,
       status: body.complete ? "completed" : "in_progress",
     })
     .eq("id", params.id);
@@ -55,7 +76,7 @@ export async function PATCH(
   }
 
   if (!body.complete) {
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, leadType, locale });
   }
 
   let homeownerId: string | null = null;
@@ -82,6 +103,25 @@ export async function PATCH(
     }
   }
 
+  // ---- Buyer path: no property valuation ----
+  if (leadType === "buyer") {
+    runAfterBuyerCompleted({
+      conversationId: params.id,
+      homeownerId,
+      answers: mergedAnswers,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      leadType: "buyer",
+      homeownerId,
+      propertyId: null,
+      valuation: null,
+      valuationError: null,
+    });
+  }
+
+  // ---- Seller path: property + valuation ----
   const { data: property, error: propertyError } = await supabase
     .from("properties")
     .insert(buildPropertyInsert(mergedAnswers, params.id, homeownerId))
@@ -109,7 +149,6 @@ export async function PATCH(
       err instanceof Error ? err.message : "Unknown valuation error";
   }
 
-  // Phase B (SOW 7 & 8): FUB + email/SMS — non-blocking.
   runAfterValuationCompleted({
     conversationId: params.id,
     homeownerId,
@@ -120,6 +159,7 @@ export async function PATCH(
 
   return NextResponse.json({
     ok: true,
+    leadType: "seller",
     propertyId: property.id,
     homeownerId,
     valuation,

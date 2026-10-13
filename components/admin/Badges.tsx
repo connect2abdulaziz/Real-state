@@ -26,7 +26,7 @@ export function SoftBadge({
   tone = "neutral",
 }: {
   children: ReactNode;
-  tone?: "neutral" | "ok" | "warn" | "bad" | "info";
+  tone?: "neutral" | "ok" | "warn" | "bad" | "info" | "buyer" | "seller";
 }) {
   const tones = {
     neutral: "bg-white/5 text-foreground-muted border-white/10",
@@ -34,6 +34,8 @@ export function SoftBadge({
     warn: "bg-warm/15 text-warm border-warm/30",
     bad: "bg-red-500/15 text-red-300 border-red-500/30",
     info: "bg-electric-soft/15 text-electric-soft border-electric-soft/30",
+    buyer: "bg-electric-soft/15 text-electric-soft border-electric-soft/30",
+    seller: "bg-electric/15 text-electric border-electric/30",
   };
   return (
     <span

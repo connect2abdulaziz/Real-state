@@ -12,14 +12,16 @@ export const dynamic = "force-dynamic";
 export default async function AdminLeadsPage({
   searchParams,
 }: {
-  searchParams: { q?: string; pipeline?: string; page?: string };
+  searchParams: { q?: string; pipeline?: string; page?: string; type?: string };
 }) {
   const q = searchParams.q || "";
   const pipeline = searchParams.pipeline || "all";
+  const leadType = searchParams.type || "all";
   const page = parsePage(searchParams.page);
   const result = await fetchAdminLeads({
     q,
     pipeline,
+    leadType,
     page,
     pageSize: DEFAULT_PAGE_SIZE,
   });
@@ -29,10 +31,10 @@ export default async function AdminLeadsPage({
       <PageHeader
         eyebrow="Funnel"
         title="Leads"
-        description="Homeowner submissions, valuations, and consultation status."
+        description="Seller valuations and buyer consultations in one place."
       />
 
-      <LeadsFilters q={q} pipeline={pipeline} />
+      <LeadsFilters q={q} pipeline={pipeline} leadType={leadType} />
 
       <Panel
         title={`${result.total} lead${result.total === 1 ? "" : "s"}`}
@@ -46,8 +48,9 @@ export default async function AdminLeadsPage({
               <thead>
                 <tr className="border-b border-white/8 text-[11px] uppercase tracking-[0.08em] text-foreground-subtle">
                   <th className="px-4 sm:px-5 py-3 font-medium">Lead</th>
-                  <th className="px-4 py-3 font-medium">Property</th>
-                  <th className="px-4 py-3 font-medium">Valuation</th>
+                  <th className="px-4 py-3 font-medium">Type</th>
+                  <th className="px-4 py-3 font-medium">Focus</th>
+                  <th className="px-4 py-3 font-medium">Detail</th>
                   <th className="px-4 py-3 font-medium">Pipeline</th>
                   <th className="px-4 py-3 font-medium hidden lg:table-cell">
                     FUB
@@ -73,13 +76,20 @@ export default async function AdminLeadsPage({
                       <p className="text-[12px] text-foreground-subtle mt-0.5">
                         {row.email || "—"}
                       </p>
-                      {row.phone && (
-                        <p className="text-[12px] text-foreground-subtle">
-                          {row.phone}
+                    </td>
+                    <td className="px-4 py-3.5 align-top">
+                      <SoftBadge
+                        tone={row.leadType === "buyer" ? "buyer" : "seller"}
+                      >
+                        {row.leadType === "buyer" ? "Buyer" : "Seller"}
+                      </SoftBadge>
+                      {row.locale === "fr" && (
+                        <p className="text-[10px] text-foreground-subtle mt-1">
+                          FR
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 align-top max-w-[16rem]">
+                    <td className="px-4 py-3.5 align-top max-w-[14rem]">
                       <p className="text-foreground-muted truncate">
                         {row.address || "—"}
                       </p>
@@ -89,10 +99,19 @@ export default async function AdminLeadsPage({
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 align-top whitespace-nowrap tabular-nums text-foreground-muted">
-                      {row.valueLow != null && row.valueHigh != null ? (
+                    <td className="px-4 py-3.5 align-top text-foreground-muted whitespace-nowrap">
+                      {row.leadType === "buyer" ? (
                         <>
-                          <p>
+                          <p className="text-[12px]">
+                            {row.buyerQualification || "—"}
+                          </p>
+                          <p className="text-[11px] text-foreground-subtle mt-0.5">
+                            {row.buyerBudget || row.buyingTimeline || "—"}
+                          </p>
+                        </>
+                      ) : row.valueLow != null && row.valueHigh != null ? (
+                        <>
+                          <p className="tabular-nums">
                             {formatCad(row.valueLow)} – {formatCad(row.valueHigh)}
                           </p>
                           {row.confidence && (
@@ -133,6 +152,7 @@ export default async function AdminLeadsPage({
           searchParams={{
             q: q || undefined,
             pipeline: pipeline !== "all" ? pipeline : undefined,
+            type: leadType !== "all" ? leadType : undefined,
           }}
         />
       </Panel>

@@ -1,23 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Home, ArrowRight, Info, ShieldCheck } from "lucide-react";
-import { STEPS, visibleSteps, FIELD_LABELS } from "@/lib/valuation/steps";
+import { visibleSteps, FIELD_LABELS, SECTIONS } from "@/lib/valuation/steps";
+import {
+  BUYER_SECTIONS,
+  visibleBuyerSteps,
+} from "@/lib/buyer/steps";
 import { Answers, TranscriptMessage, ValuationRecord } from "@/lib/types";
-
-interface ConversationPatchResponse {
-  ok: boolean;
-  propertyId?: string;
-  homeownerId?: string | null;
-  valuation?: ValuationRecord | null;
-  valuationError?: string | null;
-}
+import { Locale, UI } from "@/lib/i18n/copy";
 import { ProgressRail } from "./ProgressRail";
 import { InsightRail } from "./InsightRail";
 import { StepInput } from "./StepInput";
 import { ValuationPanel } from "./ValuationPanel";
-import { SmokeTestButton } from "./SmokeTestButton";
+import { BuyerResultPanel } from "./BuyerResultPanel";
 import Link from "next/link";
+
+interface ConversationPatchResponse {
+  ok: boolean;
+  leadType?: "seller" | "buyer";
+  propertyId?: string | null;
+  homeownerId?: string | null;
+  valuation?: ValuationRecord | null;
+  valuationError?: string | null;
+}
 
 function now() {
   return new Date().toISOString();
@@ -29,6 +35,8 @@ async function patchConversation(
     appendTranscript?: TranscriptMessage[];
     answers?: Answers;
     complete?: boolean;
+    leadType?: "seller" | "buyer";
+    locale?: Locale;
   }
 ) {
   const res = await fetch(`/api/conversations/${conversationId}`, {
@@ -36,11 +44,11 @@ async function patchConversation(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    throw new Error("Failed to save progress");
-  }
+  if (!res.ok) throw new Error("Failed to save progress");
   return res.json() as Promise<ConversationPatchResponse>;
 }
+
+type Phase = "gate" | "flow";
 
 export function ConversationFlow() {
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -56,10 +64,22 @@ export function ConversationFlow() {
   const [propertyId, setPropertyId] = useState<string | null>(null);
   const [homeownerId, setHomeownerId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [locale, setLocale] = useState<Locale>("en");
+  const [leadType, setLeadType] = useState<"seller" | "buyer" | null>(null);
+  const [phase, setPhase] = useState<Phase>("gate");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const steps = visibleSteps(answers);
+  const copy = UI[locale];
+
+  const steps = useMemo(() => {
+    if (leadType === "buyer") return visibleBuyerSteps(answers, locale);
+    if (leadType === "seller") return visibleSteps(answers);
+    return [];
+  }, [answers, leadType, locale]);
+
   const step = steps[stepIndex];
+  const railSections =
+    leadType === "buyer" ? BUYER_SECTIONS : SECTIONS;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -70,38 +90,107 @@ export function ConversationFlow() {
   async function begin() {
     setSaveError(null);
     try {
-      const res = await fetch("/api/conversations", { method: "POST" });
+      const res = await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale, leadType: "seller" }),
+      });
       if (!res.ok) throw new Error("Could not start conversation");
       const { conversation } = await res.json();
       setConversationId(conversation.id);
-    } catch (err) {
-      setSaveError(
-        "Couldn't connect to start your valuation. Please try again."
-      );
+    } catch {
+      setSaveError(copy.connectError);
       return;
     }
 
     setStarted(true);
+    setPhase("gate");
+    setAnswers({ locale });
+
     const intro: TranscriptMessage = {
       from: "ai",
-      text: "Hi — I'm EstateValora. I'll ask a few questions one at a time about your property to prepare a preliminary valuation. No long form — just a short conversation, usually about three to five minutes.",
+      text: copy.startBody,
       at: now(),
     };
-    const firstQ: TranscriptMessage = {
+    const askIntent: TranscriptMessage = {
       from: "ai",
-      text: STEPS[0].ask,
-      stepId: STEPS[0].id,
+      text: copy.sellOrBuyAsk,
+      stepId: "intent",
       at: now(),
     };
-    const firstNote: TranscriptMessage[] = STEPS[0].explain
-      ? [{ from: "ai-note", text: STEPS[0].explain, stepId: STEPS[0].id, at: now() }]
-      : [];
+    setHistory([intro, askIntent]);
+  }
 
-    setHistory([intro, firstQ, ...firstNote]);
+  async function submitIntent(raw: "sell" | "buy") {
+    if (submitting) return;
+    setSubmitting(true);
+
+    const display = raw === "buy" ? copy.buy : copy.sell;
+    const userMsg: TranscriptMessage = {
+      from: "user",
+      text: display,
+      stepId: "intent",
+      at: now(),
+    };
+
+    const nextLead: "seller" | "buyer" = raw === "buy" ? "buyer" : "seller";
+    const nextAnswers: Answers = {
+      ...answers,
+      locale,
+      intent: raw,
+    };
+    setAnswers(nextAnswers);
+    setLeadType(nextLead);
+    setHistory((h) => [...h, userMsg]);
+
+    const branchIntro =
+      nextLead === "buyer" ? copy.buyerIntro : copy.sellerIntro;
+    const firstSteps =
+      nextLead === "buyer"
+        ? visibleBuyerSteps(nextAnswers, locale)
+        : visibleSteps(nextAnswers);
+    const first = firstSteps[0];
+
+    const followUp: TranscriptMessage[] = [
+      { from: "ai", text: branchIntro, at: now() },
+      {
+        from: "ai",
+        text: first.ask,
+        stepId: first.id,
+        at: now(),
+      },
+    ];
+    if (first.explain) {
+      followUp.push({
+        from: "ai-note",
+        text: first.explain,
+        stepId: first.id,
+        at: now(),
+      });
+    }
+
+    try {
+      if (conversationId) {
+        await patchConversation(conversationId, {
+          appendTranscript: [userMsg, ...followUp],
+          answers: { locale, intent: raw },
+          leadType: nextLead,
+          locale,
+        });
+      }
+      setSaveError(null);
+    } catch {
+      setSaveError(copy.saveError);
+    }
+
+    setHistory((h) => [...h, ...followUp]);
+    setPhase("flow");
+    setStepIndex(0);
+    setSubmitting(false);
   }
 
   async function submitAnswer(rawValue: string) {
-    if (!step || submitting) return;
+    if (!step || submitting || phase !== "flow" || !leadType) return;
     if (!rawValue && !step.optional) return;
 
     setSubmitting(true);
@@ -115,21 +204,33 @@ export function ConversationFlow() {
     };
     setHistory((h) => [...h, userMsg]);
 
-    const nextAnswers: Answers = { ...answers, [step.id]: rawValue || "" };
+    const nextAnswers: Answers = {
+      ...answers,
+      [step.id]: rawValue || "",
+      locale,
+      intent: leadType === "buyer" ? "buy" : "sell",
+    };
     setAnswers(nextAnswers);
 
-    const nextSteps = visibleSteps(nextAnswers);
+    const nextSteps =
+      leadType === "buyer"
+        ? visibleBuyerSteps(nextAnswers, locale)
+        : visibleSteps(nextAnswers);
     const currentPos = nextSteps.findIndex((s) => s.id === step.id);
     const next = currentPos + 1;
     const isLast = next >= nextSteps.length;
 
-    // Follow-up messages only (userMsg is already in local history).
     const followUp: TranscriptMessage[] = [];
 
     if (isLast) {
       followUp.push({
         from: "ai",
-        text: "Thank you. I have everything I need to prepare your preliminary valuation. I'm analyzing the information you've provided to estimate a current market value range for your property.",
+        text:
+          leadType === "buyer"
+            ? copy.buyerDone
+            : locale === "fr"
+              ? "Merci. J'ai tout ce qu'il faut pour préparer votre estimation préliminaire."
+              : "Thank you. I have everything I need to prepare your preliminary valuation. I'm analyzing the information you've provided to estimate a current market value range for your property.",
         at: now(),
       });
     } else {
@@ -150,17 +251,15 @@ export function ConversationFlow() {
       }
     }
 
-    const appendTranscript: TranscriptMessage[] = [userMsg, ...followUp];
-
-    // Persist to Supabase via the API route before updating local UI state,
-    // so the conversation record never drifts from what's shown on screen.
-    if (isLast) setValuationLoading(true);
+    if (isLast && leadType === "seller") setValuationLoading(true);
     try {
       if (conversationId) {
         const result = await patchConversation(conversationId, {
-          appendTranscript,
-          answers: { [step.id]: rawValue || "" },
+          appendTranscript: [userMsg, ...followUp],
+          answers: { [step.id]: rawValue || "", locale, intent: nextAnswers.intent },
           complete: isLast,
+          leadType,
+          locale,
         });
         if (isLast) {
           setPropertyId(result.propertyId ?? null);
@@ -171,11 +270,9 @@ export function ConversationFlow() {
       }
       setSaveError(null);
     } catch {
-      setSaveError(
-        "Your last answer was recorded here, but couldn't be saved — check your connection."
-      );
+      setSaveError(copy.saveError);
     } finally {
-      if (isLast) setValuationLoading(false);
+      if (isLast && leadType === "seller") setValuationLoading(false);
     }
 
     setHistory((h) => [...h, ...followUp]);
@@ -188,16 +285,36 @@ export function ConversationFlow() {
     setSubmitting(false);
   }
 
-  const currentSection = finished ? "done" : step ? step.section : "Property";
+  const currentSection = finished
+    ? "done"
+    : phase === "gate"
+      ? "Contact"
+      : step
+        ? step.section
+        : "Property";
+
   const progressLabel = finished
-    ? "Valuation complete"
-    : started && step
-    ? `Current: ${step.section}`
-    : "Ready when you are";
+    ? leadType === "buyer"
+      ? copy.progressBuyerDone
+      : copy.progressSellerDone
+    : started
+      ? leadType === "buyer"
+        ? copy.progressBuyer
+        : leadType === "seller"
+          ? copy.progressSeller
+          : copy.progressReady
+      : copy.progressReady;
+
+  const intentStep = {
+    id: "intent",
+    section: "Contact" as const,
+    type: "select" as const,
+    ask: copy.sellOrBuyAsk,
+    options: [copy.sell, copy.buy],
+  };
 
   return (
     <div className="relative w-full h-[100dvh] bg-background overflow-hidden">
-      {/* Atmospheric side glow — fills empty flanks */}
       <div
         className="pointer-events-none absolute inset-0"
         aria-hidden="true"
@@ -214,9 +331,9 @@ export function ConversationFlow() {
         <ProgressRail
           currentSection={currentSection}
           progressLabel={progressLabel}
+          sections={railSections}
         />
 
-        {/* Center stage */}
         <div className="flex-1 min-w-0 flex flex-col min-h-0 h-full">
           <div className="flex-1 min-w-0 rounded-md border border-white/10 bg-surface/90 backdrop-blur-sm flex flex-col overflow-hidden min-h-0 h-full shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_24px_80px_rgba(0,0,0,0.45)]">
             <div className="px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 border-b border-white/10 flex items-center justify-between shrink-0 gap-3">
@@ -234,10 +351,14 @@ export function ConversationFlow() {
                   </p>
                   <p className="text-[12px] text-foreground-muted font-sans">
                     {finished
-                      ? "Your preliminary estimate"
+                      ? leadType === "buyer"
+                        ? copy.progressBuyerDone
+                        : copy.progressSellerDone
                       : started
-                      ? "AI property valuation"
-                      : "Ready to begin"}
+                        ? leadType === "buyer"
+                          ? copy.progressBuyer
+                          : copy.progressSeller
+                        : copy.progressReady}
                   </p>
                 </div>
               </div>
@@ -255,24 +376,50 @@ export function ConversationFlow() {
                   </div>
                   <div className="max-w-lg">
                     <p className="text-[clamp(1.35rem,2.5vw,1.75rem)] font-semibold mb-2 text-foreground font-serif leading-snug">
-                      What&apos;s your property worth?
+                      {copy.startTitle}
                     </p>
                     <p className="text-[14px] text-foreground-muted leading-relaxed">
-                      A short, adaptive conversation — not a long form — that
-                      collects what we need for a preliminary Estate Valora
-                      estimate.
+                      {copy.startBody}
                     </p>
                   </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] uppercase tracking-[0.1em] text-foreground-subtle">
+                      {copy.languageLabel}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLocale("en")}
+                      className={`px-3 py-1.5 rounded-full text-[12px] border transition-colors ${
+                        locale === "en"
+                          ? "border-electric/40 bg-electric/15 text-electric"
+                          : "border-white/10 text-foreground-muted"
+                      }`}
+                    >
+                      English
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLocale("fr")}
+                      className={`px-3 py-1.5 rounded-full text-[12px] border transition-colors ${
+                        locale === "fr"
+                          ? "border-electric/40 bg-electric/15 text-electric"
+                          : "border-white/10 text-foreground-muted"
+                      }`}
+                    >
+                      Français
+                    </button>
+                  </div>
+
                   <button
                     onClick={begin}
                     className="mt-1 px-6 py-3 rounded-full bg-white text-background text-[14px] font-medium flex items-center gap-2 hover:bg-white/90 transition-colors"
                   >
-                    Start valuation <ArrowRight size={15} />
+                    {copy.startCta} <ArrowRight size={15} />
                   </button>
                   {saveError && (
                     <p className="text-[12px] text-warm">{saveError}</p>
                   )}
-                  <SmokeTestButton />
                 </div>
               )}
 
@@ -316,7 +463,7 @@ export function ConversationFlow() {
                     )
                   )}
 
-                  {finished && (
+                  {finished && leadType === "seller" && (
                     <>
                       <ValuationPanel
                         loading={valuationLoading}
@@ -326,7 +473,6 @@ export function ConversationFlow() {
                         propertyId={propertyId}
                         homeownerId={homeownerId}
                       />
-
                       <div className="mt-5 rounded-md border border-white/10 bg-surface-soft p-4 sm:p-6 min-w-0 overflow-hidden">
                         <p className="text-[13px] font-semibold mb-4 text-foreground">
                           Structured property record
@@ -343,12 +489,20 @@ export function ConversationFlow() {
                             </div>
                           ))}
                         </div>
-                        <div className="mt-5 pt-4 border-t border-white/10 text-[12px] leading-relaxed text-foreground-muted">
-                          This record has been saved and is what Phase 1 passed
-                          to the OpenAI valuation step above.
-                        </div>
                       </div>
                     </>
+                  )}
+
+                  {finished && leadType === "buyer" && (
+                    <BuyerResultPanel
+                      answers={answers}
+                      locale={locale}
+                      conversationId={conversationId}
+                      homeownerId={homeownerId}
+                      doneMessage={copy.buyerDone}
+                      panelTitle={copy.buyerPanelTitle}
+                      panelNote={copy.buyerPanelNote}
+                    />
                   )}
 
                   {saveError && (
@@ -360,7 +514,30 @@ export function ConversationFlow() {
               )}
             </div>
 
-            {started && !finished && step && (
+            {started && !finished && phase === "gate" && (
+              <div className="border-t border-white/10 p-3 sm:p-4 lg:px-8 font-sans shrink-0 bg-surface/95 min-w-0">
+                <div className="mx-auto w-full max-w-3xl flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => submitIntent("sell")}
+                    className="flex-1 px-4 py-3 rounded-md border border-white/10 bg-surface-soft text-[14px] text-foreground hover:border-electric/40 hover:bg-electric/10 disabled:opacity-50 transition-colors"
+                  >
+                    {copy.sell}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => submitIntent("buy")}
+                    className="flex-1 px-4 py-3 rounded-md border border-white/10 bg-surface-soft text-[14px] text-foreground hover:border-electric/40 hover:bg-electric/10 disabled:opacity-50 transition-colors"
+                  >
+                    {copy.buy}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {started && !finished && phase === "flow" && step && (
               <div className="border-t border-white/10 p-3 sm:p-4 lg:px-8 font-sans shrink-0 bg-surface/95 min-w-0">
                 <div className="mx-auto w-full max-w-3xl">
                   <StepInput
@@ -378,7 +555,9 @@ export function ConversationFlow() {
           started={started}
           finished={finished}
           answers={answers}
-          currentAsk={step?.ask}
+          currentAsk={
+            phase === "gate" ? intentStep.ask : step?.ask
+          }
         />
       </div>
     </div>

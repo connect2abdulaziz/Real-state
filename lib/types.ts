@@ -6,7 +6,11 @@ export type ConversationSection =
   | "Condition"
   | "Details"
   | "Motivation"
-  | "Contact";
+  | "Contact"
+  | "Preferences"
+  | "Budget"
+  | "Timeline"
+  | "Qualification";
 
 export interface ConversationStep {
   id: string;
