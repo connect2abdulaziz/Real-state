@@ -6,13 +6,9 @@ import { ScrollIndicator } from "@/components/hero/ScrollIndicator";
 import { HeroScene } from "@/components/hero/HeroScene";
 
 /**
- * Full-viewport hero.
- *
- * Bottom-left: copy + CTA
- * Bottom-right: glassy stats + scroll cue
- *
- * Scroll reveal (HeroScene):
- *   pin video → fade/lift UI → darken → Experience covers
+ * Full-viewport hero — conversion layout:
+ * Upper-middle: evaluation offer + CTA
+ * Bottom-right: stats + scroll cue
  */
 export function Hero() {
   return (
@@ -30,8 +26,9 @@ export function Hero() {
       <div data-hero="foreground" className="absolute inset-0 z-10">
         <Header />
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0">
-          <div className="page-container pointer-events-auto pb-10 md:pb-14">
+        {/* Conversion hook — centered on mobile, raised on desktop */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 bottom-0 flex items-center md:items-start">
+          <div className="page-container pointer-events-auto w-full md:pt-[24vh] lg:pt-[26vh]">
             <HeroContent />
           </div>
         </div>
