@@ -17,17 +17,17 @@ export const siteContent = {
   ],
 
   hero: {
-    titleBefore: "Buy or sell with",
-    titleItalic: "clarity.",
-    description:
-      "Sellers get a preliminary value range. Buyers get a guided consultation path — one conversation.",
-    cta: "Start the conversation",
+    titleBefore: "Your home's evaluation in",
+    titleItalic: "60 seconds.",
+    description: "Start the conversation — no commitment.",
+    cta: "Start my evaluation",
     ctaHref: "/valuation",
+    secondary: "Sell with clarity.",
     scrollLabel: "SCROLL TO EXPLORE",
     /** Confirm remaining figures with client — $25M+ is confirmed */
     stats: [
       { value: "$25M+", label: "Sold" },
-      { value: "15+", label: "Years of guidance" },
+      { value: "15+", label: "Years guiding sellers" },
       { value: "92%", label: "Felt clearer after" },
     ],
   },
@@ -139,46 +139,70 @@ export const siteContent = {
       "A curated look at Montreal properties — refined interiors and thoughtful living.",
     items: [
       {
-        id: "plateau-loft",
-        title: "Plateau Loft Residence",
-        meta: "2 bed · $825K",
-        image:
-          "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=900&q=80",
+        id: "blainville",
+        title: "Blainville",
+        meta: "$849K",
+        image: "/images/Blainville.png",
       },
       {
-        id: "outremont-suite",
-        title: "Outremont Garden Suite",
-        meta: "3 bed · $1.1M",
-        image:
-          "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=80",
+        id: "fabreville",
+        title: "Fabreville",
+        meta: "$899K",
+        image: "/images/Fabreville_Laval.png",
       },
       {
-        id: "griffintown-condo",
-        title: "Griffintown Sky Condo",
-        meta: "1 bed · $620K",
-        image:
-          "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=900&q=80",
+        id: "ville-saint-laurent",
+        title: "Ville Saint-Laurent",
+        meta: "$1.45M",
+        image: "/images/Ville_Saint_Laurent.png",
       },
       {
-        id: "westmount-home",
-        title: "Westmount Heritage Home",
-        meta: "4 bed · $2.4M",
-        image:
-          "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=900&q=80",
+        id: "tmr",
+        title: "TMR",
+        meta: "$3.07M",
+        image: "/images/TMR.png",
       },
       {
-        id: "verdun-riverside",
-        title: "Verdun Riverside Flat",
-        meta: "2 bed · $710K",
-        image:
-          "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&w=900&q=80",
+        id: "montreal",
+        title: "Montréal",
+        meta: "$369K",
+        image: "/images/Montréal_QC.png",
       },
       {
-        id: "mile-end-studio",
-        title: "Mile End Studio Loft",
-        meta: "Studio · $485K",
-        image:
-          "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=900&q=80",
+        id: "westmount",
+        title: "Westmount",
+        meta: "$2.85M",
+        image: "/images/Westmount.png",
+      },
+      {
+        id: "laval",
+        title: "Laval",
+        meta: "$869.9K",
+        image: "/images/Laval_QC_869.png",
+      },
+      {
+        id: "beaconsfield",
+        title: "Beaconsfield",
+        meta: "$2.49M",
+        image: "/images/Beaconsfield.png",
+      },
+      {
+        id: "ddo",
+        title: "DDO",
+        meta: "$749K",
+        image: "/images/DDO.png",
+      },
+      {
+        id: "brossard-15",
+        title: "Brossard",
+        meta: "$1.5M",
+        image: "/images/Brossard.png",
+      },
+      {
+        id: "brossard-780",
+        title: "Brossard",
+        meta: "$780K",
+        image: "/images/Brossard_QC_780.png",
       },
     ],
   },
