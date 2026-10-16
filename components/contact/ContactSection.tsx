@@ -1,4 +1,6 @@
-import { siteContent } from "@/data/content";
+"use client";
+
+import { useSiteContent } from "@/data/content/useSiteContent";
 import { FusedCtaButton } from "@/components/ui/FusedCtaButton";
 import { Reveal } from "@/components/motion/Reveal";
 
@@ -51,6 +53,7 @@ const socialIcons: Record<
  * Contact — large dual-tone headline + fused CTA inline in the line + socials/footer.
  */
 export function ContactSection() {
+  const content = useSiteContent();
   const {
     index,
     eyebrow,
@@ -67,7 +70,7 @@ export function ContactSection() {
     chips,
     footerNav,
     footerNote,
-  } = siteContent.contact;
+  } = content.contact;
 
   return (
     <section
@@ -179,7 +182,7 @@ export function ContactSection() {
                 />
               </svg>
               <span className="text-[12px] font-medium tracking-[0.16em] uppercase text-foreground">
-                {siteContent.brand.name}
+                {content.brand.name}
               </span>
             </div>
 

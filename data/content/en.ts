@@ -1,0 +1,348 @@
+/**
+ * Site content — keep copy here so layout/components stay presentation-only.
+ * Placeholder values for scaffolding; refine during design phases.
+ */
+
+export const contentEn = {
+  brand: {
+    initials: "EV",
+    name: "Estate Valora",
+    title: "Property Insight Montreal",
+  },
+
+  nav: [
+    { label: "Experience", href: "#experience" },
+    { label: "Your Report", href: "#report" },
+    { label: "About", href: "#testimonials" },
+  ],
+
+  hero: {
+    titleBefore: "Your home's evaluation in",
+    titleItalic: "60 seconds.",
+    description: "Start the conversation — no commitment.",
+    cta: "Start my evaluation",
+    ctaHref: "/valuation",
+    secondary: "Sell with clarity.",
+    scrollLabel: "SCROLL TO EXPLORE",
+    /** Confirm remaining figures with client — $25M+ is confirmed */
+    stats: [
+      { value: "$25M+", label: "Sold" },
+      { value: "15+", label: "Years guiding sellers" },
+      { value: "92%", label: "Felt clearer after" },
+    ],
+  },
+
+  /**
+   * Hero media — self-hosted in /public/media/
+   */
+  media: {
+    src: "/media/Montreal_Lights_by_Sky_Semijon_1080p.mp4",
+    poster: "/media/hero-poster.webp",
+  },
+
+  experience: {
+    index: "01",
+    eyebrow: "THE EXPERIENCE",
+    /** Alternating emphasis: "strong" = foreground, "muted" = gray */
+    headline: [
+      [
+        { text: "Estate Valora", tone: "strong" },
+        { text: " is designed for those", tone: "muted" },
+      ],
+      [
+        { text: "who seek ", tone: "muted" },
+        { text: "clarity, confidence, and", tone: "strong" },
+      ],
+      [
+        { text: "a deeper understanding of value —", tone: "strong" },
+      ],
+      [
+        { text: "where technology starts the talk", tone: "muted" },
+      ],
+      [
+        { text: "and guidance helps you decide", tone: "strong" },
+      ],
+    ],
+    body: "We create a space where insight and expertise exist in balance. Whether you are selling or buying, every step is designed to slow the guesswork — bringing clarity, privacy, and quiet confidence before you decide what comes next.",
+    cta: "Start conversation",
+    ctaHref: "/valuation",
+  },
+
+  processSection: {
+    index: "02",
+    title: "How it works",
+    background: "/media/background_image.jpg",
+  },
+
+  process: [
+    {
+      number: "01",
+      tag: "INPUT",
+      title: "Tell us what you need",
+      description:
+        "Choose buy or sell, then share details through a guided conversation.",
+    },
+    {
+      number: "02",
+      tag: "ANALYSIS",
+      title: "Get clarity fast",
+      description:
+        "Sellers see an estimated value range. Buyers share preferences for a tailored follow-up.",
+    },
+    {
+      number: "03",
+      tag: "OUTCOME",
+      title: "Choose what comes next",
+      description:
+        "Book a phone or video consultation with Ashkan when you're ready to go deeper.",
+    },
+  ],
+
+  report: {
+    index: "03",
+    eyebrow: "YOUR REPORT",
+    title: "A clearer picture of value.",
+    description:
+      "A structured preview of estimated range, what supports it, and what it cannot claim.",
+    sample: {
+      brand: "Estate Valora",
+      docLabel: "Sample insight",
+      property: "Plateau-Mont-Royal",
+      propertyType: "Condo · 2 bed",
+      rangeLow: "$785K",
+      rangeHigh: "$842K",
+      rangeLabel: "Estimated range",
+      strengths: [
+        "Strong comparable sales nearby",
+        "Desirable street & building profile",
+        "Recent interior updates reflected",
+      ],
+      limitation:
+        "This is an estimated range to start the conversation — not a formal appraisal.",
+    },
+    floaters: [
+      { label: "CONF.", value: "94%", position: "left-top" },
+      { label: "COMPS", value: "12", position: "right-top" },
+      { label: "YoY", value: "+6.2%", position: "left-bottom" },
+      { label: "MARKET", value: "MTL", position: "right-bottom" },
+    ],
+    cta: "See my value range",
+    ctaHref: "/valuation",
+  },
+
+  listings: {
+    index: "04",
+    eyebrow: "LISTINGS",
+    title:
+      "More than just space — homes chosen for clarity, character, and calm.",
+    description:
+      "A curated look at Montreal properties — refined interiors and thoughtful living.",
+    items: [
+      {
+        id: "blainville",
+        title: "Blainville",
+        meta: "$849K",
+        image: "/images/Blainville.png",
+      },
+      {
+        id: "fabreville",
+        title: "Fabreville",
+        meta: "$899K",
+        image: "/images/Fabreville_Laval.png",
+      },
+      {
+        id: "ville-saint-laurent",
+        title: "Ville Saint-Laurent",
+        meta: "$1.45M",
+        image: "/images/Ville_Saint_Laurent.png",
+      },
+      {
+        id: "tmr",
+        title: "TMR",
+        meta: "$3.07M",
+        image: "/images/TMR.png",
+      },
+      {
+        id: "montreal",
+        title: "Montréal",
+        meta: "$369K",
+        image: "/images/Montréal_QC.png",
+      },
+      {
+        id: "westmount",
+        title: "Westmount",
+        meta: "$2.85M",
+        image: "/images/Westmount.png",
+      },
+      {
+        id: "laval",
+        title: "Laval",
+        meta: "$869.9K",
+        image: "/images/Laval_QC_869.png",
+      },
+      {
+        id: "beaconsfield",
+        title: "Beaconsfield",
+        meta: "$2.49M",
+        image: "/images/Beaconsfield.png",
+      },
+      {
+        id: "ddo",
+        title: "DDO",
+        meta: "$749K",
+        image: "/images/DDO.png",
+      },
+      {
+        id: "brossard-15",
+        title: "Brossard",
+        meta: "$1.5M",
+        image: "/images/Brossard.png",
+      },
+      {
+        id: "brossard-780",
+        title: "Brossard",
+        meta: "$780K",
+        image: "/images/Brossard_QC_780.png",
+      },
+    ],
+  },
+
+  testimonials: {
+    index: "05",
+    eyebrow: "VOICES",
+    titleBefore: "Our clients'",
+    titleItalic: "Testimonials",
+    description:
+      "Real feedback that reflects clarity, care, and commitment — before the next decision.",
+    image:
+      "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=900&q=80",
+    imageAlt: "Advisor meeting with homeowners",
+    items: [
+      {
+        id: "t1",
+        quote:
+          "I finally understood my home's range before listing. The conversation felt simple, never pushy.",
+        name: "Marie L.",
+        role: "Plateau seller",
+        rating: 5,
+      },
+      {
+        id: "t2",
+        quote:
+          "Clear numbers, honest limits, and a human follow-up when I needed it. Exactly what I wanted.",
+        name: "James K.",
+        role: "Outremont owner",
+        rating: 5,
+      },
+      {
+        id: "t3",
+        quote:
+          "The report preview alone gave me confidence. We sold with far less stress than expected.",
+        name: "Sofia R.",
+        role: "Griffintown condo",
+        rating: 5,
+      },
+      {
+        id: "t4",
+        quote:
+          "Technology started the talk — Ashkan finished it. A rare mix of modern and personal.",
+        name: "Daniel P.",
+        role: "Westmount client",
+        rating: 5,
+      },
+      {
+        id: "t5",
+        quote:
+          "No pressure, just clarity. I knew what shaped the estimate and what to do next.",
+        name: "Amélie T.",
+        role: "Verdun homeowner",
+        rating: 5,
+      },
+      {
+        id: "t6",
+        quote:
+          "Beautiful experience end to end. The valuation range matched reality closely.",
+        name: "Chris N.",
+        role: "Mile End loft",
+        rating: 5,
+      },
+    ],
+  },
+
+  advisor: {
+    eyebrow: "PERSONAL PERSPECTIVE",
+    name: "Ashkan Shamloo",
+    title: "Licensed Real Estate Broker",
+    description:
+      "When the conversation needs a human perspective, Ashkan is here to guide the next decision.",
+    cta: "Book a consultation",
+  },
+
+  faq: {
+    index: "06",
+    eyebrow: "FAQ",
+    title: "Frequently asked questions",
+    subtitle: "Have questions? We're here to help you.",
+    cta: "Your questions",
+    ctaHref: "#contact",
+    footerNote: "Clarity before you decide",
+    image:
+      "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1000&q=80",
+    imageAlt: "Modern luxury villa exterior at dusk",
+    items: [
+      {
+        question: "Is this an official appraisal?",
+        answer:
+          "No. Estate Valora provides an estimated range to start the conversation — not a formal appraisal. When you need certified valuation, Ashkan can guide the next step.",
+      },
+      {
+        question: "Who is this experience for?",
+        answer:
+          "Montreal homeowners who want a clearer sense of what shapes their property's value before listing, refinancing, or deciding what comes next.",
+      },
+      {
+        question: "How is the estimated range calculated?",
+        answer:
+          "Through a guided conversation about your home, local comparables, and market context. The report highlights strengths and known limitations so expectations stay honest.",
+      },
+      {
+        question: "What happens after I see my range?",
+        answer:
+          "You choose: sit with the insight, refine details, or book a personal consultation when you’re ready for deeper guidance.",
+      },
+      {
+        question: "Is my information kept private?",
+        answer:
+          "Yes. Details you share are used to shape your insight and conversation — not sold as marketing noise. Privacy is part of the experience.",
+      },
+    ],
+  },
+
+  contact: {
+    index: "07",
+    eyebrow: "CONTACT",
+    tagline: "Designed for clearer decisions",
+    line1Light: "Let's discuss your",
+    line1Muted: "home's",
+    line2Before: "value",
+    line2After: "with us",
+    cta: "Get in touch",
+    ctaHref: "mailto:hello@estatevalora.com",
+    body: "Whether you're preparing to sell or simply want clarity — start a quiet conversation with Estate Valora.",
+    email: "hello@estatevalora.com",
+    socials: [
+      { label: "Instagram", handle: "@estatevalora", href: "#" },
+      { label: "LinkedIn", handle: "Estate Valora", href: "#" },
+    ],
+    chips: ["Property insight", "Montreal"],
+    footerNav: [
+      { label: "Experience", href: "#experience" },
+      { label: "Report", href: "#report" },
+      { label: "Listings", href: "#listings" },
+      { label: "FAQ", href: "#faq" },
+    ],
+    footerNote: "Luxury real estate × AI × Montreal After Dark",
+  },
+} as const;
+
+export type SiteContent = typeof contentEn;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { siteContent } from "@/data/content";
+import { useSiteContent } from "@/data/content/useSiteContent";
 import { prefersReducedMotion } from "@/lib/utils";
 
 /**
@@ -12,7 +12,7 @@ import { prefersReducedMotion } from "@/lib/utils";
  */
 export function HeroVideo() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { src } = siteContent.media;
+  const { src } = useSiteContent().media;
 
   useEffect(() => {
     const video = videoRef.current;

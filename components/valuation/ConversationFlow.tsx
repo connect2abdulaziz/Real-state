@@ -9,12 +9,29 @@ import {
 } from "@/lib/buyer/steps";
 import { Answers, TranscriptMessage, ValuationRecord } from "@/lib/types";
 import { Locale, UI } from "@/lib/i18n/copy";
+import {
+  LOCALE_STORAGE_KEY,
+  readLocaleFromDocumentCookie,
+  writeLocalePreference,
+} from "@/data/content/locale";
 import { ProgressRail } from "./ProgressRail";
 import { InsightRail } from "./InsightRail";
 import { StepInput } from "./StepInput";
 import { ValuationPanel } from "./ValuationPanel";
 import { BuyerResultPanel } from "./BuyerResultPanel";
 import Link from "next/link";
+
+function readPreferredLocale(): Locale {
+  try {
+    const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
+    if (stored === "en" || stored === "fr") return stored;
+  } catch {
+    /* private mode */
+  }
+  const fromCookie = readLocaleFromDocumentCookie();
+  if (fromCookie) return fromCookie;
+  return "fr";
+}
 
 interface ConversationPatchResponse {
   ok: boolean;
@@ -64,7 +81,7 @@ export function ConversationFlow() {
   const [propertyId, setPropertyId] = useState<string | null>(null);
   const [homeownerId, setHomeownerId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [locale, setLocale] = useState<Locale>("en");
+  const [locale, setLocale] = useState<Locale>(() => readPreferredLocale());
   const [leadType, setLeadType] = useState<"seller" | "buyer" | null>(null);
   const [phase, setPhase] = useState<Phase>("gate");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -389,7 +406,10 @@ export function ConversationFlow() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => setLocale("en")}
+                      onClick={() => {
+                        writeLocalePreference("en");
+                        setLocale("en");
+                      }}
                       className={`px-3 py-1.5 rounded-full text-[12px] border transition-colors ${
                         locale === "en"
                           ? "border-electric/40 bg-electric/15 text-electric"
@@ -400,7 +420,10 @@ export function ConversationFlow() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setLocale("fr")}
+                      onClick={() => {
+                        writeLocalePreference("fr");
+                        setLocale("fr");
+                      }}
                       className={`px-3 py-1.5 rounded-full text-[12px] border transition-colors ${
                         locale === "fr"
                           ? "border-electric/40 bg-electric/15 text-electric"

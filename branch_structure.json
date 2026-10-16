@@ -1,0 +1,18 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "feature/landing",
+    "main",
+    "origin"
+  ],
+  "parent": {
+    "feature/landing": "main",
+    "main": null,
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "feature/landing",
+    "origin"
+  ]
+}

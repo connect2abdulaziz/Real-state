@@ -1,12 +1,18 @@
-import { siteContent } from "@/data/content";
+"use client";
+
+import { useSiteContent } from "@/data/content/useSiteContent";
 import { ReportScene } from "@/components/report/ReportScene";
+import { useMarketingLocale } from "@/components/layout/MarketingLocaleProvider";
 
 /**
- * Thin shell — feeds marketing content into ReportScene.
- * Keeps product CTAs pointed at /valuation via siteContent.report.ctaHref.
+ * Feeds locale marketing content into ReportScene.
+ * CTAs stay on /valuation via content files.
  */
 export function ReportSection() {
-  const report = siteContent.report;
+  const report = useSiteContent().report;
+  const { locale } = useMarketingLocale();
+  const strengthsLabel =
+    locale === "fr" ? "Points forts de la propriété" : "Property strengths";
 
   return (
     <ReportScene
@@ -18,7 +24,7 @@ export function ReportSection() {
       floaters={report.floaters}
       cta={report.cta}
       ctaHref={report.ctaHref}
-      strengthsLabel="Property strengths"
+      strengthsLabel={strengthsLabel}
     />
   );
 }
