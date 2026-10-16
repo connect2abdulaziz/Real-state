@@ -1,11 +1,14 @@
-import { siteContent } from "@/data/content";
+"use client";
+
 import { FusedCtaButton } from "@/components/ui/FusedCtaButton";
+import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
+import { useSiteContent } from "@/data/content/useSiteContent";
 
 /**
- * Site header — glassmorphic center nav + fused SVG CTA.
+ * Site header — glassmorphic center nav + locale switcher + fused CTA.
  */
 export function Header() {
-  const { brand, nav } = siteContent;
+  const { brand, nav, hero } = useSiteContent();
 
   return (
     <header
@@ -56,12 +59,15 @@ export function Header() {
         })}
       </nav>
 
-      <FusedCtaButton
-        href="/valuation"
-        label="Start Valuation"
-        dataAttr="header-cta"
-        className="hidden md:block"
-      />
+      <div className="flex items-center gap-3">
+        <LocaleSwitcher />
+        <FusedCtaButton
+          href="/valuation"
+          label={hero.cta}
+          dataAttr="header-cta"
+          className="hidden md:block"
+        />
+      </div>
     </header>
   );
 }

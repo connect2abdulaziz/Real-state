@@ -1,4 +1,6 @@
-import { siteContent } from "@/data/content";
+"use client";
+
+import { useSiteContent } from "@/data/content/useSiteContent";
 import { FusedCtaButton } from "@/components/ui/FusedCtaButton";
 import { Reveal } from "@/components/motion/Reveal";
 
@@ -10,7 +12,7 @@ import { Reveal } from "@/components/motion/Reveal";
  */
 export function Experience() {
   const { index, eyebrow, headline, body, cta, ctaHref } =
-    siteContent.experience;
+    useSiteContent().experience;
 
   return (
     <section

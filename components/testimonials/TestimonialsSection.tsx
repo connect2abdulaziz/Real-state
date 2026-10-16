@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { siteContent } from "@/data/content";
+import type { SiteContent } from "@/data/content";
+import { useSiteContent } from "@/data/content/useSiteContent";
 import { Reveal } from "@/components/motion/Reveal";
 
-type Testimonial = (typeof siteContent.testimonials.items)[number];
+type Testimonial = SiteContent["testimonials"]["items"][number];
 
 function Stars({ count }: { count: number }) {
   return (
@@ -75,7 +76,7 @@ function MarqueeColumn({
  * Testimonials — center copy + photo; left/right columns scroll upward.
  */
 export function TestimonialsSection() {
-  const { testimonials } = siteContent;
+  const { testimonials } = useSiteContent();
 
   const leftItems = testimonials.items.filter((_, i) => i % 2 === 0);
   const rightItems = testimonials.items.filter((_, i) => i % 2 === 1);
