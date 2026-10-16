@@ -1,5 +1,7 @@
-import { siteContent } from "@/data/content";
+"use client";
+
 import { FusedCtaButton } from "@/components/ui/FusedCtaButton";
+import { useSiteContent } from "@/data/content/useSiteContent";
 
 /**
  * Hero offer — conversion hook raised into the upper-middle of the viewport.
@@ -13,7 +15,7 @@ export function HeroContent() {
     cta,
     ctaHref,
     secondary,
-  } = siteContent.hero;
+  } = useSiteContent().hero;
 
   return (
     <div data-component="hero-content" className="max-w-2xl">
