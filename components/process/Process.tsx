@@ -1,5 +1,7 @@
+"use client";
+
 import Image from "next/image";
-import { siteContent } from "@/data/content";
+import { useSiteContent } from "@/data/content/useSiteContent";
 
 /** Vertical stagger: top / bottom / top */
 const staggerClass = [
@@ -27,7 +29,7 @@ const glassStyle = {
  * Warm orbs sit behind the glass so frost picks up amber light.
  */
 export function Process() {
-  const { processSection, process } = siteContent;
+  const { processSection, process } = useSiteContent();
 
   return (
     <section
