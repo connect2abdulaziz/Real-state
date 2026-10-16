@@ -3,7 +3,7 @@
  * Placeholder values for scaffolding; refine during design phases.
  */
 
-export const siteContent = {
+export const contentEn = {
   brand: {
     initials: "EV",
     name: "Estate Valora",
@@ -345,4 +345,4 @@ export const siteContent = {
   },
 } as const;
 
-export type SiteContent = typeof siteContent;
+export type SiteContent = typeof contentEn;
