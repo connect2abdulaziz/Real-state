@@ -1,10 +1,12 @@
-import { siteContent } from "@/data/content";
+"use client";
+
+import { useSiteContent } from "@/data/content/useSiteContent";
 
 /**
  * Compact glassy stats — bottom-right of the hero, simple straight row.
  */
 export function HeroStats() {
-  const { stats } = siteContent.hero;
+  const { stats } = useSiteContent().hero;
 
   return (
     <div

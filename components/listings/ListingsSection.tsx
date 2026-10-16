@@ -2,8 +2,8 @@
 
 import { useState, type CSSProperties } from "react";
 import Image from "next/image";
-import { siteContent } from "@/data/content";
 import type { SiteContent } from "@/data/content";
+import { useSiteContent } from "@/data/content/useSiteContent";
 import { ListingsLightbox } from "@/components/listings/ListingsLightbox";
 
 /** Desktop frame sizes */
@@ -103,7 +103,7 @@ function NavArrows({
  * Desktop: original sizes, arrows with description row.
  */
 export function ListingsSection() {
-  const listings = siteContent.listings;
+  const listings = useSiteContent().listings;
   const items = listings.items;
   const n = items.length;
   const [active, setActive] = useState(1);
