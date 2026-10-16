@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { siteContent } from "@/data/content";
+import { useSiteContent } from "@/data/content/useSiteContent";
 import { FusedCtaButton } from "@/components/ui/FusedCtaButton";
 import { Reveal } from "@/components/motion/Reveal";
 
@@ -21,7 +21,7 @@ export function FAQ() {
     image,
     imageAlt,
     items,
-  } = siteContent.faq;
+  } = useSiteContent().faq;
 
   const [openIndex, setOpenIndex] = useState(0);
 
