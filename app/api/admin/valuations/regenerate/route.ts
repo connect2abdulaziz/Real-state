@@ -41,15 +41,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Property not found" }, { status: 404 });
     }
 
-    const valuation = await runValuation({ propertyId });
-
     const { data: conversation } = await supabase
       .from("conversations")
-      .select("answers")
+      .select("answers, locale")
       .eq("id", property.conversation_id)
       .single();
 
     const answers = (conversation?.answers || {}) as Answers;
+    const locale =
+      conversation?.locale === "fr" || answers.locale === "fr" ? "fr" : "en";
+
+    const valuation = await runValuation({ propertyId, locale });
 
     if (notify) {
       runAfterValuationCompleted({

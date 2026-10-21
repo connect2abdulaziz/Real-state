@@ -12,6 +12,8 @@ interface RunValuationArgs {
   propertyId: string;
   /** Optional supporting market/location context, when the platform has any (see prompt.ts). */
   marketContext?: string;
+  /** Client chat locale — narrative valuation fields must match. */
+  locale?: "en" | "fr";
 }
 
 /**
@@ -27,6 +29,7 @@ interface RunValuationArgs {
 export async function runValuation({
   propertyId,
   marketContext,
+  locale = "en",
 }: RunValuationArgs): Promise<ValuationRecord> {
   const supabase = createAdminClient();
 
@@ -51,7 +54,11 @@ export async function runValuation({
         { role: "system", content: VALUATION_SYSTEM_PROMPT },
         {
           role: "user",
-          content: buildValuationUserPrompt(typedProperty, marketContext),
+          content: buildValuationUserPrompt(
+            typedProperty,
+            marketContext,
+            locale
+          ),
         },
       ],
       response_format: {

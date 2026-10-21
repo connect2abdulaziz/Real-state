@@ -96,7 +96,8 @@ function detailLines(
  */
 export function buildValuationUserPrompt(
   property: PropertyRecord,
-  marketContext?: string
+  marketContext?: string,
+  locale: "en" | "fr" = "en"
 ): string {
   const propertyBlock = [
     line("Address", property.address),
@@ -116,6 +117,11 @@ export function buildValuationUserPrompt(
     ...detailLines(property.details),
   ].join("\n");
 
+  const languageRule =
+    locale === "fr"
+      ? "IMPORTANT: Write ALL narrative fields (explanation, factor names and explanations, strengths, considerations, limitations) in French (Québec). Keep numeric fields as numbers. Do not mix English into the narrative."
+      : "IMPORTANT: Write ALL narrative fields (explanation, factor names and explanations, strengths, considerations, limitations) in English. Keep numeric fields as numbers.";
+
   return [
     "Homeowner-provided property information:",
     propertyBlock,
@@ -123,6 +129,8 @@ export function buildValuationUserPrompt(
     "Supporting property/location/market information available to the system:",
     marketContext?.trim() ||
       "None available for this assessment. Phase 1 does not integrate MLS or comparable-sales data. Base the estimate on the property information above and general reasoning about value drivers, and reflect the lack of market data in a wider range and appropriately cautious confidence level.",
+    "",
+    languageRule,
     "",
     "Produce the preliminary valuation now, following the response schema exactly.",
   ].join("\n");

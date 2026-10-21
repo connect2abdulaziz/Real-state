@@ -12,13 +12,14 @@ export async function POST(req: Request) {
   const body = await req.json();
   const propertyId: string | undefined = body?.propertyId;
   const marketContext: string | undefined = body?.marketContext;
+  const locale = body?.locale === "fr" ? "fr" : "en";
 
   if (!propertyId) {
     return NextResponse.json({ error: "propertyId is required" }, { status: 400 });
   }
 
   try {
-    const valuation = await runValuation({ propertyId, marketContext });
+    const valuation = await runValuation({ propertyId, marketContext, locale });
     return NextResponse.json({ valuation });
   } catch (err) {
     console.error("Valuation request failed:", err);

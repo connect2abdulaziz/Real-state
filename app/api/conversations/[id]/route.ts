@@ -139,7 +139,7 @@ export async function PATCH(
   let valuation = null;
   let valuationError: string | null = null;
   try {
-    valuation = await runValuation({ propertyId: property.id });
+    valuation = await runValuation({ propertyId: property.id, locale });
     if (valuation.status === "failed") {
       valuationError = valuation.error_message;
     }

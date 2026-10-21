@@ -40,6 +40,7 @@ export function BuyerResultPanel({
         propertyId={null}
         homeownerId={homeownerId}
         valuationId={null}
+        locale={locale}
       />
 
       <div className="rounded-md border border-white/10 bg-surface-soft p-4 sm:p-6 min-w-0 overflow-hidden">
@@ -48,7 +49,7 @@ export function BuyerResultPanel({
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-4 text-[13px] min-w-0">
           {Object.entries(answers)
-            .filter(([k]) => k !== "intent")
+            .filter(([k]) => k !== "intent" && k !== "locale")
             .map(([k, v]) => (
               <div key={k} className="min-w-0">
                 <p className="text-[11px] text-foreground-subtle uppercase tracking-[0.08em] mb-0.5">
