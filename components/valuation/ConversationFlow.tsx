@@ -32,7 +32,9 @@ import { ValuationPanel } from "./ValuationPanel";
 import { BuyerResultPanel } from "./BuyerResultPanel";
 import Link from "next/link";
 
+/** Client-only: localStorage first, then cookie. Never call during SSR render. */
 function readPreferredLocale(): Locale {
+  if (typeof window === "undefined") return "fr";
   try {
     const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
     if (stored === "en" || stored === "fr") return stored;
@@ -78,7 +80,12 @@ async function patchConversation(
 
 type Phase = "gate" | "flow";
 
-export function ConversationFlow() {
+export function ConversationFlow({
+  initialLocale = "fr",
+}: {
+  /** From server cookie — must match SSR to avoid hydration mismatch (#425). */
+  initialLocale?: Locale;
+}) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Answers>({});
   const [history, setHistory] = useState<TranscriptMessage[]>([]);
@@ -92,10 +99,27 @@ export function ConversationFlow() {
   const [propertyId, setPropertyId] = useState<string | null>(null);
   const [homeownerId, setHomeownerId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [locale, setLocale] = useState<Locale>(() => readPreferredLocale());
+  // Stable default for SSR + first client paint (never read localStorage here).
+  const [locale, setLocale] = useState<Locale>(initialLocale);
+  const localeLockedByUser = useRef(false);
   const [leadType, setLeadType] = useState<"seller" | "buyer" | null>(null);
   const [phase, setPhase] = useState<Phase>("gate");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // After mount, adopt stored client preference — skip if user already toggled.
+  useEffect(() => {
+    if (localeLockedByUser.current) return;
+    const preferred = readPreferredLocale();
+    if (preferred !== initialLocale) {
+      setLocale(preferred);
+    }
+  }, [initialLocale]);
+
+  function selectLocale(next: Locale) {
+    localeLockedByUser.current = true;
+    writeLocalePreference(next);
+    setLocale(next);
+  }
 
   const copy = UI[locale];
 
@@ -475,10 +499,7 @@ export function ConversationFlow() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => {
-                          writeLocalePreference("en");
-                          setLocale("en");
-                        }}
+                        onClick={() => selectLocale("en")}
                         className={`px-3 py-1.5 rounded-full text-[12px] border transition-colors ${
                           locale === "en"
                             ? "border-electric/40 bg-electric/15 text-electric"
@@ -489,10 +510,7 @@ export function ConversationFlow() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          writeLocalePreference("fr");
-                          setLocale("fr");
-                        }}
+                        onClick={() => selectLocale("fr")}
                         className={`px-3 py-1.5 rounded-full text-[12px] border transition-colors ${
                           locale === "fr"
                             ? "border-electric/40 bg-electric/15 text-electric"
