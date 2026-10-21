@@ -20,7 +20,10 @@ export interface ConversationStep {
   explain?: string;
   optional?: boolean;
   placeholder?: string;
+  /** Stored answer values (and fallback display labels). */
   options?: string[];
+  /** Display labels for options (same order as options). When set, UI shows these but stores options[i]. */
+  optionLabels?: string[];
   /** Determines whether this step should be shown, based on prior answers. */
   condition?: (answers: Answers) => boolean;
 }

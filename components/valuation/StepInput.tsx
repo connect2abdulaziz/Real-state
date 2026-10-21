@@ -2,28 +2,35 @@
 
 import { useEffect, useState } from "react";
 import { ConversationStep } from "@/lib/types";
+import type { Locale } from "@/lib/i18n/copy";
+import { UI } from "@/lib/i18n/copy";
 
 export function StepInput({
   step,
   onSubmit,
   disabled = false,
+  locale = "en",
 }: {
   step: ConversationStep;
   onSubmit: (value: string) => void;
   disabled?: boolean;
+  locale?: Locale;
 }) {
   const [value, setValue] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const copy = UI[locale];
 
   useEffect(() => {
     setValue("");
     setSelected([]);
   }, [step.id]);
 
+  const labels = step.optionLabels || step.options;
+
   if (step.type === "select") {
     return (
       <div className="flex flex-wrap gap-2">
-        {step.options?.map((opt) => (
+        {step.options?.map((opt, i) => (
           <button
             key={opt}
             type="button"
@@ -31,7 +38,7 @@ export function StepInput({
             onClick={() => onSubmit(opt)}
             className="px-3.5 py-2 rounded-full border border-white/15 text-foreground text-[13px] bg-white/[0.04] hover:bg-white/[0.1] hover:border-white/30 transition-colors disabled:opacity-50 disabled:pointer-events-none"
           >
-            {opt}
+            {labels?.[i] ?? opt}
           </button>
         ))}
       </div>
@@ -48,7 +55,7 @@ export function StepInput({
     return (
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap gap-2">
-          {step.options?.map((opt) => {
+          {step.options?.map((opt, i) => {
             const active = selected.includes(opt);
             return (
               <button
@@ -62,7 +69,7 @@ export function StepInput({
                     : "border-white/15 text-foreground bg-white/[0.04] hover:bg-white/[0.1]"
                 }`}
               >
-                {opt}
+                {labels?.[i] ?? opt}
               </button>
             );
           })}
@@ -74,7 +81,7 @@ export function StepInput({
             onClick={() => onSubmit(selected.join(", "))}
             className="px-4 py-2.5 rounded-full bg-white text-background text-[13px] font-medium disabled:opacity-50 disabled:pointer-events-none"
           >
-            Continue
+            {copy.continue}
           </button>
           {step.optional && (
             <button
@@ -83,7 +90,7 @@ export function StepInput({
               onClick={() => onSubmit("")}
               className="px-4 py-2.5 rounded-full border border-white/15 text-foreground-muted text-[13px] disabled:opacity-50"
             >
-              Skip
+              {copy.skip}
             </button>
           )}
         </div>
@@ -92,17 +99,21 @@ export function StepInput({
   }
 
   if (step.type === "yesno") {
+    const pairs = [
+      { value: "Yes", label: copy.yes },
+      { value: "No", label: copy.no },
+    ];
     return (
       <div className="flex gap-2">
-        {["Yes", "No"].map((opt) => (
+        {pairs.map((opt) => (
           <button
-            key={opt}
+            key={opt.value}
             type="button"
             disabled={disabled}
-            onClick={() => onSubmit(opt)}
+            onClick={() => onSubmit(opt.value)}
             className="px-5 py-2 rounded-full border border-white/15 text-foreground text-[13px] font-medium bg-white/[0.04] hover:bg-white/[0.1] transition-colors disabled:opacity-50 disabled:pointer-events-none"
           >
-            {opt}
+            {opt.label}
           </button>
         ))}
       </div>
@@ -132,7 +143,7 @@ export function StepInput({
         disabled={disabled}
         className="px-3.5 sm:px-4 py-2.5 rounded-full bg-white text-background text-[13px] font-medium shrink-0 disabled:opacity-50 disabled:pointer-events-none"
       >
-        {step.optional && !value ? "Skip" : "Send"}
+        {step.optional && !value ? copy.skip : copy.send}
       </button>
     </form>
   );

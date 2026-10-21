@@ -2,16 +2,22 @@
 
 import Link from "next/link";
 import { Home, Check, Info, Sparkles } from "lucide-react";
+import type { Locale } from "@/lib/i18n/copy";
+import { UI } from "@/lib/i18n/copy";
+import { sellerSectionLabel } from "@/lib/valuation/seller-i18n";
 
 export function ProgressRail({
   currentSection,
   progressLabel,
   sections: sectionsProp,
+  locale = "en",
 }: {
   currentSection: string;
   progressLabel?: string;
   sections?: readonly string[];
+  locale?: Locale;
 }) {
+  const copy = UI[locale];
   const sections: readonly string[] = sectionsProp?.length
     ? sectionsProp
     : [
@@ -38,15 +44,13 @@ export function ProgressRail({
             <p className="text-[13px] font-medium tracking-[0.14em] uppercase text-foreground group-hover:text-electric transition-colors">
               Estate Valora
             </p>
-            <p className="text-[12px] text-foreground-muted">
-              Property Insight Montreal
-            </p>
+            <p className="text-[12px] text-foreground-muted">{copy.tagline}</p>
           </div>
         </Link>
 
         <div className="mb-6">
           <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.14em] text-foreground-subtle mb-2">
-            <span>Progress</span>
+            <span>{copy.progress}</span>
             <span className="text-electric">{pct}%</span>
           </div>
           <div className="h-1 rounded-full bg-white/10 overflow-hidden">
@@ -56,7 +60,9 @@ export function ProgressRail({
             />
           </div>
           {progressLabel && (
-            <p className="mt-2 text-[12px] text-foreground-muted">{progressLabel}</p>
+            <p className="mt-2 text-[12px] text-foreground-muted">
+              {progressLabel}
+            </p>
           )}
         </div>
 
@@ -76,8 +82,8 @@ export function ProgressRail({
                     isDone
                       ? "border-electric bg-electric"
                       : isCurrent
-                      ? "border-electric bg-transparent"
-                      : "border-white/15 bg-transparent"
+                        ? "border-electric bg-transparent"
+                        : "border-white/15 bg-transparent"
                   }`}
                 >
                   {isDone && <Check size={11} className="text-background" />}
@@ -90,11 +96,11 @@ export function ProgressRail({
                     isCurrent
                       ? "text-foreground font-semibold"
                       : isDone
-                      ? "text-foreground-muted"
-                      : "text-foreground-subtle"
+                        ? "text-foreground-muted"
+                        : "text-foreground-subtle"
                   }`}
                 >
-                  {s}
+                  {sellerSectionLabel(s, locale)}
                 </span>
               </div>
             );
@@ -104,14 +110,13 @@ export function ProgressRail({
         <div className="mt-6 rounded-md p-3.5 flex gap-2.5 bg-surface-soft border border-white/8">
           <Info size={15} className="text-electric shrink-0 mt-0.5" />
           <p className="text-[12px] leading-snug text-foreground-muted">
-            Preliminary AI-assisted estimate — not a certified appraisal.
-            Subject to review by Ashkan Shamloo.
+            {copy.reviewNote}
           </p>
         </div>
 
         <div className="mt-3 flex items-center gap-2 text-[11px] text-foreground-subtle">
           <Sparkles size={12} className="text-electric" />
-          Clarity before you decide
+          {copy.clarityLine}
         </div>
       </div>
     </aside>

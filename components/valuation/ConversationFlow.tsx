@@ -2,12 +2,23 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Home, ArrowRight, Info, ShieldCheck } from "lucide-react";
-import { visibleSteps, FIELD_LABELS, SECTIONS } from "@/lib/valuation/steps";
+import { FIELD_LABELS, SECTIONS } from "@/lib/valuation/steps";
 import {
+  getSellerSteps,
+  SELLER_FIELD_LABELS_FR,
+  visibleSellerSteps,
+} from "@/lib/valuation/seller-i18n";
+import {
+  BUYER_FIELD_LABELS,
   BUYER_SECTIONS,
   visibleBuyerSteps,
 } from "@/lib/buyer/steps";
-import { Answers, TranscriptMessage, ValuationRecord } from "@/lib/types";
+import {
+  Answers,
+  ConversationStep,
+  TranscriptMessage,
+  ValuationRecord,
+} from "@/lib/types";
 import { Locale, UI } from "@/lib/i18n/copy";
 import {
   LOCALE_STORAGE_KEY,
@@ -90,9 +101,71 @@ export function ConversationFlow() {
 
   const steps = useMemo(() => {
     if (leadType === "buyer") return visibleBuyerSteps(answers, locale);
-    if (leadType === "seller") return visibleSteps(answers);
+    if (leadType === "seller") return visibleSellerSteps(answers, locale);
     return [];
   }, [answers, leadType, locale]);
+
+  function displayAnswer(step: ConversationStep, rawValue: string): string {
+    if (!rawValue) return copy.skipped;
+    if (step.type === "yesno") {
+      if (rawValue === "Yes" || rawValue === "Oui") return copy.yes;
+      if (rawValue === "No" || rawValue === "Non") return copy.no;
+      return rawValue;
+    }
+    if (step.options?.length) {
+      const labels = step.optionLabels || step.options;
+      const mapOne = (v: string) => {
+        const idx = step.options!.indexOf(v.trim());
+        return idx >= 0 ? labels[idx] ?? v : v;
+      };
+      if (step.type === "multiselect" && rawValue.includes(",")) {
+        return rawValue
+          .split(",")
+          .map((p) => mapOne(p.trim()))
+          .filter(Boolean)
+          .join(", ");
+      }
+      return mapOne(rawValue);
+    }
+    return rawValue;
+  }
+
+  function fieldLabel(key: string): string {
+    if (locale === "fr") {
+      return (
+        SELLER_FIELD_LABELS_FR[key] ||
+        BUYER_FIELD_LABELS[key]?.fr ||
+        FIELD_LABELS[key] ||
+        key
+      );
+    }
+    return FIELD_LABELS[key] || BUYER_FIELD_LABELS[key]?.en || key;
+  }
+
+  /** Show stored English option values as locale labels in the summary record. */
+  function displayStoredValue(key: string, value: string): string {
+    if (!value) return "—";
+    if (value === "Yes" || value === "Oui") return copy.yes;
+    if (value === "No" || value === "Non") return copy.no;
+    if (leadType === "seller" && locale === "fr") {
+      const step = getSellerSteps("fr").find((s) => s.id === key);
+      if (step?.options?.length) {
+        const labels = step.optionLabels || step.options;
+        if (value.includes(",")) {
+          return value
+            .split(",")
+            .map((part) => {
+              const idx = step.options!.indexOf(part.trim());
+              return idx >= 0 ? labels[idx] ?? part.trim() : part.trim();
+            })
+            .join(", ");
+        }
+        const idx = step.options.indexOf(value);
+        if (idx >= 0) return labels[idx] ?? value;
+      }
+    }
+    return value;
+  }
 
   const step = steps[stepIndex];
   const railSections =
@@ -165,7 +238,7 @@ export function ConversationFlow() {
     const firstSteps =
       nextLead === "buyer"
         ? visibleBuyerSteps(nextAnswers, locale)
-        : visibleSteps(nextAnswers);
+        : visibleSellerSteps(nextAnswers, locale);
     const first = firstSteps[0];
 
     const followUp: TranscriptMessage[] = [
@@ -212,10 +285,9 @@ export function ConversationFlow() {
 
     setSubmitting(true);
 
-    const displayValue = rawValue || "Skipped";
     const userMsg: TranscriptMessage = {
       from: "user",
-      text: displayValue,
+      text: displayAnswer(step, rawValue),
       stepId: step.id,
       at: now(),
     };
@@ -232,7 +304,7 @@ export function ConversationFlow() {
     const nextSteps =
       leadType === "buyer"
         ? visibleBuyerSteps(nextAnswers, locale)
-        : visibleSteps(nextAnswers);
+        : visibleSellerSteps(nextAnswers, locale);
     const currentPos = nextSteps.findIndex((s) => s.id === step.id);
     const next = currentPos + 1;
     const isLast = next >= nextSteps.length;
@@ -242,12 +314,7 @@ export function ConversationFlow() {
     if (isLast) {
       followUp.push({
         from: "ai",
-        text:
-          leadType === "buyer"
-            ? copy.buyerDone
-            : locale === "fr"
-              ? "Merci. J'ai tout ce qu'il faut pour préparer votre estimation préliminaire."
-              : "Thank you. I have everything I need to prepare your preliminary valuation. I'm analyzing the information you've provided to estimate a current market value range for your property.",
+        text: leadType === "buyer" ? copy.buyerDone : copy.sellerDone,
         at: now(),
       });
     } else {
@@ -349,6 +416,7 @@ export function ConversationFlow() {
           currentSection={currentSection}
           progressLabel={progressLabel}
           sections={railSections}
+          locale={locale}
         />
 
         <div className="flex-1 min-w-0 flex flex-col min-h-0 h-full">
@@ -400,38 +468,43 @@ export function ConversationFlow() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] uppercase tracking-[0.1em] text-foreground-subtle">
-                      {copy.languageLabel}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        writeLocalePreference("en");
-                        setLocale("en");
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-[12px] border transition-colors ${
-                        locale === "en"
-                          ? "border-electric/40 bg-electric/15 text-electric"
-                          : "border-white/10 text-foreground-muted"
-                      }`}
-                    >
-                      English
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        writeLocalePreference("fr");
-                        setLocale("fr");
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-[12px] border transition-colors ${
-                        locale === "fr"
-                          ? "border-electric/40 bg-electric/15 text-electric"
-                          : "border-white/10 text-foreground-muted"
-                      }`}
-                    >
-                      Français
-                    </button>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] uppercase tracking-[0.1em] text-foreground-subtle">
+                        {copy.languageLabel}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          writeLocalePreference("en");
+                          setLocale("en");
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-[12px] border transition-colors ${
+                          locale === "en"
+                            ? "border-electric/40 bg-electric/15 text-electric"
+                            : "border-white/10 text-foreground-muted"
+                        }`}
+                      >
+                        English
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          writeLocalePreference("fr");
+                          setLocale("fr");
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-[12px] border transition-colors ${
+                          locale === "fr"
+                            ? "border-electric/40 bg-electric/15 text-electric"
+                            : "border-white/10 text-foreground-muted"
+                        }`}
+                      >
+                        Français
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-foreground-subtle">
+                      {copy.languageHint}
+                    </p>
                   </div>
 
                   <button
@@ -495,22 +568,27 @@ export function ConversationFlow() {
                         conversationId={conversationId}
                         propertyId={propertyId}
                         homeownerId={homeownerId}
+                        locale={locale}
                       />
                       <div className="mt-5 rounded-md border border-white/10 bg-surface-soft p-4 sm:p-6 min-w-0 overflow-hidden">
                         <p className="text-[13px] font-semibold mb-4 text-foreground">
-                          Structured property record
+                          {copy.sellerRecordTitle}
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-4 text-[13px] min-w-0">
-                          {Object.entries(answers).map(([k, v]) => (
-                            <div key={k} className="min-w-0">
-                              <p className="text-[11px] text-foreground-subtle uppercase tracking-[0.08em] mb-0.5">
-                                {FIELD_LABELS[k] || k}
-                              </p>
-                              <p className="text-foreground break-words [overflow-wrap:anywhere]">
-                                {v || "—"}
-                              </p>
-                            </div>
-                          ))}
+                          {Object.entries(answers)
+                            .filter(
+                              ([k]) => k !== "locale" && k !== "intent"
+                            )
+                            .map(([k, v]) => (
+                              <div key={k} className="min-w-0">
+                                <p className="text-[11px] text-foreground-subtle uppercase tracking-[0.08em] mb-0.5">
+                                  {fieldLabel(k)}
+                                </p>
+                                <p className="text-foreground break-words [overflow-wrap:anywhere]">
+                                  {displayStoredValue(k, v)}
+                                </p>
+                              </div>
+                            ))}
                         </div>
                       </div>
                     </>
@@ -567,6 +645,7 @@ export function ConversationFlow() {
                     step={step}
                     onSubmit={submitAnswer}
                     disabled={submitting}
+                    locale={locale}
                   />
                 </div>
               </div>
@@ -581,6 +660,7 @@ export function ConversationFlow() {
           currentAsk={
             phase === "gate" ? intentStep.ask : step?.ask
           }
+          locale={locale}
         />
       </div>
     </div>
