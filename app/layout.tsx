@@ -24,6 +24,10 @@ export const metadata: Metadata = {
   title: "Estate Valora | Property Insight Montreal",
   description:
     "Discover what shapes your home's value through a simple conversation. Luxury real estate guidance in Montreal.",
+  // Prevent Chrome/Edge auto-translate from rewriting FR/EN UI into the browser language
+  other: {
+    google: "notranslate",
+  },
 };
 
 export default function RootLayout({
@@ -34,10 +38,11 @@ export default function RootLayout({
   return (
     <html
       lang="fr-CA"
+      translate="no"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
+      className={`notranslate ${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-background font-sans text-foreground">
+      <body className="min-h-full bg-background font-sans text-foreground notranslate">
         {children}
       </body>
     </html>
