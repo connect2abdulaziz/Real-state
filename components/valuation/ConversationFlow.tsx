@@ -106,8 +106,18 @@ export function ConversationFlow({
   const [phase, setPhase] = useState<Phase>("gate");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // After mount, adopt stored client preference — skip if user already toggled.
+  // After mount, adopt stored client preference — never override an explicit user pick
+  // (ref can reset on Strict Mode remount, so also persist a short-lived lock).
   useEffect(() => {
+    try {
+      if (sessionStorage.getItem("estate-valora-locale-picked") === "1") {
+        localeLockedByUser.current = true;
+        setLocale(readPreferredLocale());
+        return;
+      }
+    } catch {
+      /* private mode */
+    }
     if (localeLockedByUser.current) return;
     const preferred = readPreferredLocale();
     if (preferred !== initialLocale) {
@@ -117,6 +127,11 @@ export function ConversationFlow({
 
   function selectLocale(next: Locale) {
     localeLockedByUser.current = true;
+    try {
+      sessionStorage.setItem("estate-valora-locale-picked", "1");
+    } catch {
+      /* private mode */
+    }
     writeLocalePreference(next);
     setLocale(next);
   }
@@ -422,7 +437,11 @@ export function ConversationFlow({
   };
 
   return (
-    <div className="relative w-full h-[100dvh] bg-background overflow-hidden">
+    <div
+      className="relative w-full h-[100dvh] bg-background overflow-hidden notranslate"
+      translate="no"
+      lang={locale === "fr" ? "fr-CA" : "en"}
+    >
       <div
         className="pointer-events-none absolute inset-0"
         aria-hidden="true"
