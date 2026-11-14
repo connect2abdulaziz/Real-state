@@ -117,7 +117,10 @@ Format (obligatoire):
 - N'utilise jamais de titres markdown ni de tableaux.
 
 Contenu:
-- Utilise web_search pour moyennes de quartier / ville (HonestDoor, Centris, realtor.ca, rapports QC).
+- Utilise web_search pour moyennes de quartier / ville.
+- Sources préférées (cherche-les d'abord): HonestDoor, Centris, realtor.ca, Association professionnelle des courtiers immobiliers du Québec (APCIQ / QAREB), JLR. Préfère les stats de portails de quartier aux blogues SEO.
+- Les recherches doivent inclure quartier + ville + "prix moyen" / "average home price" / "médiane vendue" et l'année si pertinent (ex. "Fontainebleau Laval HonestDoor prix moyen").
+- S'il y a plusieurs chiffres, mène avec la moyenne/médiane du quartier d'un portail préféré; la moyenne ville n'est qu'un contexte secondaire.
 - Si des listings Estate Valora pertinents sont fournis, tu peux les citer brièvement comme exemples.
 - Si aucun comparable PDF n'est utile: NE LE DIS PAS. Donne simplement la réponse marché. Ne mentionne jamais "PDF", "extraits", "knowledge base", "comps manquants" ou "non fourni".
 - Distingue moyenne de quartier vs prix d'une seule propriété.
@@ -134,7 +137,10 @@ Formatting (required):
 - Never use markdown headings or markdown tables.
 
 Content:
-- Use web_search for neighbourhood / city averages (HonestDoor, Centris, realtor.ca, Quebec reports).
+- Use web_search for neighbourhood / city averages.
+- Preferred sources (search these first): HonestDoor, Centris, realtor.ca, Quebec Association of Real Estate Brokers (QAREB / APCIQ), JLR. Prefer portal neighbourhood stats over random blogs or SEO articles.
+- Search queries should include the neighbourhood + city + "average home price" / "prix moyen" / "median sold" and the year when relevant (e.g. "Fontainebleau Laval HonestDoor average price").
+- If several figures appear, lead with the best neighbourhood-specific average/median from a preferred portal; mention city-wide only as secondary context.
 - If relevant Estate Valora listings are provided, you may briefly cite them as examples.
 - If no PDF comps are useful: DO NOT say so. Just give the market answer. Never mention "PDF", "excerpts", "knowledge base", "no comps", or "not provided".
 - Distinguish neighbourhood average vs a single listing price.
@@ -150,7 +156,7 @@ ${historyBlock}
 User question:
 ${args.message}
 
-If they ask for an average / market price in a neighbourhood (e.g. Fontainebleau, Blainville), search the web and lead with that average in plain text. Keep it concise and user-friendly.`;
+If they ask for an average / market price in a neighbourhood (e.g. Fontainebleau, Blainville), run web_search targeting HonestDoor / Centris / realtor.ca for that neighbourhood first, then lead with that average in plain text. Keep it concise and user-friendly.`;
 
   const models = [...new Set([model, "gpt-4o"].filter(Boolean))];
 
