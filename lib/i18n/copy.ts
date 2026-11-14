@@ -22,9 +22,29 @@ const shared = {
     sell: "Sell a property",
     buy: "Buy a property",
     sellerIntro:
-      "Great — I'll ask a few questions about your property to prepare a preliminary Estate Valora valuation.",
+      "Great — next, choose how you'd like to share your property details.",
     buyerIntro:
-      "Perfect — I'll ask a few questions about what you're looking for so Ashkan's team can help you buy with clarity.",
+      "Perfect — next, choose how you'd like to share what you're looking for.",
+    inputModeAsk:
+      "How would you like to continue?",
+    inputModeDescribe: "Describe in my own words",
+    inputModeGuided: "Answer step by step",
+    inputModeHint:
+      "Describe everything in one message (like ChatGPT), or go through short questions. Either way you can type freely or use suggestions.",
+    describeAskSeller:
+      "Tell me about the property in your own words — address, type, size, bedrooms/bathrooms, year built, condition, renovations, and anything else that matters. I'll pull out the details and only ask what's missing.",
+    describeAskBuyer:
+      "Describe what you're looking for in your own words — area, budget, property type, bedrooms, must-haves, timeline. I'll pull out the details and only ask what's missing.",
+    describePlaceholderSeller:
+      "e.g. 28 rue de Josselin, Blainville J7B 1X9 — single-family home, about 2000 sq ft, 3 beds 2 baths, built 2005, finished basement, garage, good condition, kitchen renovated 5 years ago…",
+    describePlaceholderBuyer:
+      "e.g. Looking for a 3-bedroom condo in Montreal or Laval, budget around $450k–$550k, parking preferred, move within 6 months…",
+    describeReceived:
+      "Thanks — I've read your description. I'll only ask for anything still missing, then your contact details.",
+    describeThin:
+      "I couldn't pick up enough detail yet. No problem — we'll fill the gaps with a few short questions (you can still type in your own words).",
+    guidedHint:
+      "Pick a suggestion or type your answer — same box either way.",
     buyerDone:
       "Thank you. I've saved your buyer preferences. You can book a phone or video consultation with Ashkan's team below.",
     sellerDone:
@@ -42,12 +62,17 @@ const shared = {
     saveError:
       "Your last answer was recorded here, but couldn't be saved — check your connection.",
     skipped: "Skipped",
+    alsoNotedPrefix: "I've also noted",
     yes: "Yes",
     no: "No",
     continue: "Continue",
     skip: "Skip",
     send: "Send",
     back: "← Back",
+    freeTextHint:
+      "You can answer in your own words — and share several details in one message.",
+    orTypeOwn: "Type your answer here",
+    pickOrType: "Choose above, or type your answer below",
     // Step input / rails
     progress: "Progress",
     reviewNote: "Subject to review by Ashkan Shamloo.",
@@ -131,9 +156,28 @@ const shared = {
     sell: "Vendre une propriété",
     buy: "Acheter une propriété",
     sellerIntro:
-      "Parfait — je vais vous poser quelques questions sur votre propriété pour préparer une estimation préliminaire Estate Valora.",
+      "Parfait — choisissez ensuite comment partager les détails de votre propriété.",
     buyerIntro:
-      "Parfait — je vais vous poser quelques questions sur ce que vous recherchez afin que l'équipe d'Ashkan puisse vous accompagner dans votre achat.",
+      "Parfait — choisissez ensuite comment partager ce que vous recherchez.",
+    inputModeAsk: "Comment souhaitez-vous continuer?",
+    inputModeDescribe: "Décrire avec mes propres mots",
+    inputModeGuided: "Répondre étape par étape",
+    inputModeHint:
+      "Décrivez tout dans un message (comme ChatGPT), ou passez par de courtes questions. Dans les deux cas, vous pouvez écrire librement ou utiliser les suggestions.",
+    describeAskSeller:
+      "Parlez-moi de la propriété avec vos mots — adresse, type, superficie, chambres/salles de bain, année de construction, état, rénovations et tout autre détail utile. J'en extrairai les infos et ne demanderai que ce qui manque.",
+    describeAskBuyer:
+      "Décrivez ce que vous recherchez avec vos mots — secteur, budget, type de propriété, chambres, critères essentiels, échéancier. J'en extrairai les infos et ne demanderai que ce qui manque.",
+    describePlaceholderSeller:
+      "ex. 28 rue de Josselin, Blainville J7B 1X9 — maison unifamiliale, environ 2000 pi², 3 chambres 2 salles de bain, construite en 2005, sous-sol aménagé, garage, bon état, cuisine rénovée il y a 5 ans…",
+    describePlaceholderBuyer:
+      "ex. Je cherche un condo 3 chambres à Montréal ou Laval, budget 450k–550k $, stationnement de préférence, emménagement dans les 6 mois…",
+    describeReceived:
+      "Merci — j'ai lu votre description. Je ne demanderai que ce qui manque encore, puis vos coordonnées.",
+    describeThin:
+      "Je n'ai pas encore assez de détails. Pas de souci — on comblera les manques avec quelques courtes questions (vous pouvez toujours écrire librement).",
+    guidedHint:
+      "Choisissez une suggestion ou tapez votre réponse — même zone dans les deux cas.",
     buyerDone:
       "Merci. J'ai enregistré vos préférences d'acheteur. Vous pouvez réserver une consultation téléphonique ou vidéo avec l'équipe d'Ashkan ci-dessous.",
     sellerDone:
@@ -151,12 +195,17 @@ const shared = {
     saveError:
       "Votre dernière réponse est affichée ici, mais n'a pas pu être enregistrée — vérifiez votre connexion.",
     skipped: "Passé",
+    alsoNotedPrefix: "J'ai aussi noté",
     yes: "Oui",
     no: "Non",
     continue: "Continuer",
     skip: "Passer",
     send: "Envoyer",
     back: "← Retour",
+    freeTextHint:
+      "Vous pouvez répondre librement — et donner plusieurs détails dans un seul message.",
+    orTypeOwn: "Écrivez votre réponse ici",
+    pickOrType: "Choisissez ci-dessus, ou écrivez votre réponse ci-dessous",
     progress: "Progression",
     reviewNote: "Sous réserve de révision par Ashkan Shamloo.",
     liveInsight: "Aperçu en direct",

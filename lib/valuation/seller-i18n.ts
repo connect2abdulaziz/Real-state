@@ -13,8 +13,13 @@ const FR: Record<
   }
 > = {
   streetAddress: {
-    ask: "Quelle est l'adresse de la propriété que vous souhaitez faire évaluer? Commençons par l'adresse civique.",
-    placeholder: "ex. 123 rue Maple",
+    ask: "Quelle est l'adresse de la propriété que vous souhaitez faire évaluer? Vous pouvez entrer l'adresse complète (rue, ville, code postal) en un seul message.",
+    placeholder: "ex. 28 rue de Josselin, Blainville, J7B 1X9",
+    explain:
+      "Si vous indiquez la ville et le code postal maintenant, je ne les redemanderai pas.",
+  },
+  addressConfirm: {
+    ask: "Est-ce la bonne ville et le bon code postal?",
   },
   city: {
     ask: "Dans quelle ville se trouve-t-elle?",
@@ -52,8 +57,8 @@ const FR: Record<
   livingArea: {
     ask: "Quelle est approximativement la superficie habitable?",
     explain:
-      "La superficie habitable est l'un des principaux facteurs de valeur — même une estimation aide.",
-    placeholder: "ex. 1800",
+      "La superficie habitable est l'un des principaux facteurs de valeur — vous pouvez indiquer le nombre et l'unité ensemble (ex. 1800 pi² ou 2000 m²).",
+    placeholder: "ex. 1800 pi² ou 2000 m²",
   },
   livingAreaUnit: {
     ask: "Est-ce en pieds carrés ou en mètres carrés?",
@@ -62,6 +67,8 @@ const FR: Record<
   lotSize: {
     ask: "Quelle est approximativement la taille du terrain?",
     placeholder: "ex. 5000 pi² ou 450 m²",
+    explain:
+      "Incluez l'unité si vous la connaissez (pi² ou m²). Pas de souci si vous n'êtes pas sûr — vous pouvez passer.",
   },
   bedrooms: {
     ask: "Combien de chambres à coucher?",
@@ -332,6 +339,7 @@ export function sellerSectionLabel(
 }
 
 export const SELLER_FIELD_LABELS_FR: Record<string, string> = {
+  propertyNarrative: "Votre description",
   streetAddress: "Adresse",
   city: "Ville",
   postalCode: "Code postal",

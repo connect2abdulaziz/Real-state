@@ -8,7 +8,7 @@ import { PropertyRecord } from "@/lib/types";
  * will be documented as part of Phase 1 so that the valuation process can
  * be reviewed and improved in a future phase").
  */
-export const PROMPT_VERSION = "phase1-v2-estatevalora";
+export const PROMPT_VERSION = "phase1-v3-web-market";
 
 /**
  * The valuation instructions (SOW 3: "the collected property information
@@ -19,18 +19,21 @@ export const PROMPT_VERSION = "phase1-v2-estatevalora";
  *
  * Architecture note (EstateValora): conversation intelligence collects
  * structured answers; this prompt is the separate valuation intelligence
- * layer. Do not invent MLS comps or guaranteed sale prices.
+ * layer. Optional web market context (neighbourhood averages / reports)
+ * may be injected as supporting context — still do not invent MLS comps.
  */
 export const VALUATION_SYSTEM_PROMPT = `You are the valuation intelligence layer for EstateValora, supporting Ashkan Shamloo, Licensed Real Estate Broker.
 
-You will be given structured information a homeowner provided about their property, plus any supporting property, location, or market information the platform has available. You will NOT be given MLS data or a comprehensive set of comparable sold properties — Phase 1 does not have access to either, so do not assume you are working from a comparable-sales dataset, and do not invent specific comparable sales, addresses, or transaction prices.
+You will be given:
+(A) structured information a homeowner provided about their property, and
+(B) optional supporting market / location information gathered from recent web sources (neighbourhood or city averages, market reports). You will NOT be given a full MLS comparable-sales dataset. Do not invent specific comparable sales, street addresses, or transaction prices that were not provided.
 
 Your job:
-1. Reason over the information you were given about likely value drivers for a property like this.
-2. Identify concrete factors that would tend to increase the estimated value, and factors that would tend to decrease it, grounded in what was actually provided (condition, renovations, size, features, basement, parking, age, condo fees, income, etc.).
-3. Produce a preliminary estimated value RANGE (a low and a high figure), not a single point value. Reflect real uncertainty: if little information is available, the range should be wider and confidence should be lower. If information is too thin to responsibly estimate, say so clearly in limitations and use a very wide range with low confidence — never invent a precise price.
-4. Write a plain-language explanation a homeowner can understand, covering the reasoning behind the range.
-5. Note genuine limitations of this estimate given the information available (e.g. no MLS/comparable-sales access, no interior inspection, self-reported condition).
+1. If market context includes a credible neighbourhood/city average sale price (CAD), use it as the PRIMARY baseline for the estimate. Adjust up or down from that baseline using the subject property's size, bedrooms, bathrooms, condition, renovations, lot, parking, age, and other provided attributes. Do NOT ignore a strong local average and invent a much lower generic Canadian price.
+2. Identify concrete factors that would tend to increase the estimated value, and factors that would tend to decrease it, grounded in what was actually provided.
+3. Produce a preliminary estimated value RANGE (low and high), not a single point. If market context is strong, confidence may be medium (or high only when property details are also rich). If market context is missing or weak, widen the range and lower confidence.
+4. Write a plain-language explanation covering how the market baseline (if any) and property attributes led to the range. Mention source types from the market brief when relevant (e.g. HonestDoor / market report) without claiming certified appraisal status.
+5. Note genuine limitations (e.g. web averages are not subject-property comps, no interior inspection, self-reported condition, no MLS dataset).
 
 Owner-stated expected values and purchase prices are context only — do not treat them as market value.
 
@@ -122,13 +125,20 @@ export function buildValuationUserPrompt(
       ? "IMPORTANT: Write ALL narrative fields (explanation, factor names and explanations, strengths, considerations, limitations) in French (Québec). Keep numeric fields as numbers. Do not mix English into the narrative."
       : "IMPORTANT: Write ALL narrative fields (explanation, factor names and explanations, strengths, considerations, limitations) in English. Keep numeric fields as numbers.";
 
+  const marketBlock = marketContext?.trim()
+    ? [
+        marketContext.trim(),
+        "",
+        "Instruction: Anchor the value range to the market figures above when they are credible for this city/neighbourhood and property type, then adjust for the subject property attributes. Do not invent sold listings.",
+      ].join("\n")
+    : "None available for this assessment (web market lookup unavailable). Base the estimate on the property information above and general reasoning about value drivers; use a wider range and cautious confidence.";
+
   return [
     "Homeowner-provided property information:",
     propertyBlock,
     "",
     "Supporting property/location/market information available to the system:",
-    marketContext?.trim() ||
-      "None available for this assessment. Phase 1 does not integrate MLS or comparable-sales data. Base the estimate on the property information above and general reasoning about value drivers, and reflect the lack of market data in a wider range and appropriately cautious confidence level.",
+    marketBlock,
     "",
     languageRule,
     "",

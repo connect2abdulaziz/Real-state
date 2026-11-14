@@ -11,6 +11,7 @@ export const contentFr = {
 
   nav: [
     { label: "L'expérience", href: "#experience" },
+    { label: "Assistant", href: "/chat" },
     { label: "Votre rapport", href: "#report" },
     { label: "À propos", href: "#testimonials" },
   ],

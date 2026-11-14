@@ -3,6 +3,9 @@ node_modules
 .env
 .env.local
 .DS_Store
+data/estate-valora-comps/
+Estate Valora .zip
+supabase/.temp/
 branch_structure.json
 temp_auto_push.bat
 temp_interactive_push.bat

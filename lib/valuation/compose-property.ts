@@ -2,13 +2,18 @@ import { Answers, PropertyDetails } from "@/lib/types";
 
 function toIntOrNull(v: string | undefined): number | null {
   if (!v) return null;
-  const n = parseInt(v, 10);
+  const m = v.replace(/,/g, "").match(/-?\d+/);
+  if (!m) return null;
+  const n = parseInt(m[0], 10);
   return Number.isFinite(n) ? n : null;
 }
 
+/** Accepts free-text like "2000 m²" by reading the leading number. */
 function toNumOrNull(v: string | undefined): number | null {
   if (!v) return null;
-  const n = parseFloat(v);
+  const m = v.replace(/,/g, "").match(/-?\d+(\.\d+)?/);
+  if (!m) return null;
+  const n = parseFloat(m[0]);
   return Number.isFinite(n) ? n : null;
 }
 

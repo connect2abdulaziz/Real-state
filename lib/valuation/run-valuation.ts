@@ -6,30 +6,29 @@ import {
   buildValuationUserPrompt,
 } from "@/lib/valuation/prompt";
 import { VALUATION_JSON_SCHEMA, ValuationResultSchema } from "@/lib/valuation/schema";
+import { fetchMarketContext } from "@/lib/valuation/fetch-market-context";
 import { PropertyRecord, ValuationRecord } from "@/lib/types";
 
 interface RunValuationArgs {
   propertyId: string;
-  /** Optional supporting market/location context, when the platform has any (see prompt.ts). */
+  /** Optional supporting market/location context. If omitted, web search may fill it. */
   marketContext?: string;
   /** Client chat locale — narrative valuation fields must match. */
   locale?: "en" | "fr";
+  /** Skip automatic web market lookup (default false). */
+  skipWebMarket?: boolean;
 }
 
 /**
- * Executes the Phase 1 AI valuation workflow (SOW 3 / SOW 12 steps 4-7):
- * loads the homeowner's structured property record, sends it to OpenAI
- * with the configured valuation instructions and a strict output schema,
- * validates what comes back, and stores it. Used both:
- *  - automatically, right after a conversation completes
- *    (app/api/conversations/[id]/route.ts), and
- *  - on demand via POST /api/valuations, e.g. for a manual re-run from
- *    the future admin dashboard.
+ * Executes the AI valuation workflow:
+ * 1) Optional web market brief (OpenAI Responses + web_search) → marketContext
+ * 2) Structured valuation JSON from property answers + marketContext
  */
 export async function runValuation({
   propertyId,
   marketContext,
   locale = "en",
+  skipWebMarket = false,
 }: RunValuationArgs): Promise<ValuationRecord> {
   const supabase = createAdminClient();
 
@@ -45,6 +44,30 @@ export async function runValuation({
 
   const typedProperty = property as PropertyRecord;
 
+  let resolvedMarket = marketContext?.trim() || "";
+  let marketMeta: {
+    via: string;
+    query?: string;
+    sources?: string[];
+  } = { via: marketContext?.trim() ? "provided" : "none" };
+
+  if (!resolvedMarket && !skipWebMarket) {
+    const market = await fetchMarketContext(typedProperty);
+    marketMeta = {
+      via: market.via,
+      query: market.query,
+      sources: market.sources,
+    };
+    if (market.via === "web_search" && market.text) {
+      resolvedMarket = market.text;
+      console.info(
+        `[valuation] market context via web_search (${market.sources?.length || 0} sources)`
+      );
+    } else {
+      console.warn(`[valuation] market context ${market.via}; continuing without web data`);
+    }
+  }
+
   try {
     const openai = createOpenAIClient();
 
@@ -56,7 +79,7 @@ export async function runValuation({
           role: "user",
           content: buildValuationUserPrompt(
             typedProperty,
-            marketContext,
+            resolvedMarket || undefined,
             locale
           ),
         },
@@ -94,7 +117,13 @@ export async function runValuation({
         limitations: result.limitations,
         model: VALUATION_MODEL,
         prompt_version: PROMPT_VERSION,
-        raw_model_output: parsedJson,
+        raw_model_output: {
+          ...parsedJson,
+          _market_lookup: marketMeta,
+          _market_context_preview: resolvedMarket
+            ? resolvedMarket.slice(0, 2000)
+            : null,
+        },
       })
       .select("*")
       .single();
@@ -126,7 +155,6 @@ export async function runValuation({
       return failedRecord as ValuationRecord;
     }
 
-    // Even the failure record couldn't be written — surface the original error.
     throw err;
   }
 }

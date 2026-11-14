@@ -47,8 +47,18 @@ export const STEPS: ConversationStep[] = [
     id: "streetAddress",
     section: "Property",
     type: "text",
-    ask: "What is the address of the property you would like to have evaluated? Let's start with the street address.",
-    placeholder: "e.g. 123 Maple Street",
+    ask: "What is the address of the property you would like to have evaluated? You can enter the full address (street, city, postal code) in one message.",
+    placeholder: "e.g. 28 rue de Josselin, Blainville, J7B 1X9",
+    explain:
+      "If you share city and postal code now, I won't ask for them again.",
+  },
+  {
+    id: "addressConfirm",
+    section: "Property",
+    type: "yesno",
+    // Ask text is resolved dynamically from the geocode suggestion.
+    ask: "Is this the right city and postal code?",
+    condition: (a) => a._needsAddressConfirm === "1" && !a.city,
   },
   {
     id: "city",
@@ -56,6 +66,7 @@ export const STEPS: ConversationStep[] = [
     type: "text",
     ask: "Which city is that in?",
     placeholder: "e.g. Montreal",
+    condition: (a) => !a.city,
   },
   {
     id: "postalCode",
@@ -63,6 +74,7 @@ export const STEPS: ConversationStep[] = [
     type: "text",
     ask: "And the postal code?",
     placeholder: "e.g. H2X 1Y4",
+    condition: (a) => !a.postalCode,
   },
   {
     id: "propertyType",
@@ -103,11 +115,11 @@ export const STEPS: ConversationStep[] = [
   {
     id: "livingArea",
     section: "Characteristics",
-    type: "number",
+    type: "text",
     ask: "Approximately how much living space does the property have?",
     explain:
-      "Living area is one of the strongest drivers of value — even a rough figure helps.",
-    placeholder: "e.g. 1800",
+      "Living area is one of the strongest drivers of value — you can write the number and unit together (e.g. 1800 sq ft or 2000 m²).",
+    placeholder: "e.g. 1800 sq ft or 2000 m²",
   },
   {
     id: "livingAreaUnit",
@@ -115,6 +127,8 @@ export const STEPS: ConversationStep[] = [
     type: "select",
     ask: "Is that in square feet or square metres?",
     options: ["Square feet", "Square metres"],
+    // Skipped when the living-area answer already included a unit.
+    condition: (a) => Boolean(a.livingArea) && !a.livingAreaUnit,
   },
   {
     id: "lotSize",
@@ -123,7 +137,8 @@ export const STEPS: ConversationStep[] = [
     ask: "Approximately how large is the lot?",
     optional: true,
     placeholder: "e.g. 5,000 sq ft or 450 m²",
-    explain: "No problem if you're not sure — we can continue without it.",
+    explain:
+      "Include the unit if you know it (sq ft or m²). No problem if you're not sure — you can skip.",
     condition: (a) => !isCondo(a),
   },
   {
@@ -537,6 +552,7 @@ export function visibleSteps(answers: Answers): ConversationStep[] {
 }
 
 export const FIELD_LABELS: Record<string, string> = {
+  propertyNarrative: "Your description",
   streetAddress: "Street address",
   city: "City",
   postalCode: "Postal code",

@@ -12,6 +12,7 @@ export const contentEn = {
 
   nav: [
     { label: "Experience", href: "#experience" },
+    { label: "Ask", href: "/chat" },
     { label: "Your Report", href: "#report" },
     { label: "About", href: "#testimonials" },
   ],

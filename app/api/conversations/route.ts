@@ -4,7 +4,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const locale = body?.locale === "fr" ? "fr" : "en";
-  const leadType = body?.leadType === "buyer" ? "buyer" : "seller";
+  const leadType =
+    body?.leadType === "buyer"
+      ? "buyer"
+      : body?.leadType === "chat"
+        ? "chat"
+        : "seller";
 
   const supabase = createAdminClient();
 

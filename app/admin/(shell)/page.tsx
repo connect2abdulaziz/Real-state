@@ -313,57 +313,57 @@ export default async function AdminOverviewPage() {
         {recent.length === 0 ? (
           <EmptyState message="No leads yet — run a valuation from the homeowner flow." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[13px]">
-              <thead>
-                <tr className="border-b border-white/8 text-[11px] uppercase tracking-[0.08em] text-foreground-subtle">
-                  <th className="px-4 sm:px-5 py-3 font-medium">Lead</th>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-[13px]">
+            <thead>
+              <tr className="border-b border-white/8 text-[11px] uppercase tracking-[0.08em] text-foreground-subtle">
+                <th className="px-4 sm:px-5 py-3 font-medium">Lead</th>
                   <th className="px-4 py-3 font-medium hidden sm:table-cell">
                     Property
                   </th>
-                  <th className="px-4 py-3 font-medium">Range</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Range</th>
+                <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 sm:px-5 py-3 font-medium hidden md:table-cell">
                     When
                   </th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map((row) => (
-                  <tr
-                    key={row.conversationId}
+              </tr>
+            </thead>
+            <tbody>
+              {recent.map((row) => (
+                <tr
+                  key={row.conversationId}
                     className="border-b border-white/5 hover:bg-white/[0.025] transition-colors"
-                  >
-                    <td className="px-4 sm:px-5 py-3.5">
-                      <Link
-                        href={`/admin/leads/${row.conversationId}`}
-                        className="text-foreground hover:text-electric font-medium"
-                      >
-                        {row.name || "Unknown"}
-                      </Link>
-                      <p className="text-[12px] text-foreground-subtle mt-0.5">
-                        {row.email || "—"}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3.5 text-foreground-muted hidden sm:table-cell max-w-[14rem] truncate">
-                      {row.address || "—"}
-                    </td>
-                    <td className="px-4 py-3.5 tabular-nums text-foreground-muted whitespace-nowrap">
-                      {row.valueLow != null && row.valueHigh != null
-                        ? `${formatCad(row.valueLow)} – ${formatCad(row.valueHigh)}`
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <PipelineBadge status={row.pipeline} />
-                    </td>
-                    <td className="px-4 sm:px-5 py-3.5 text-foreground-subtle hidden md:table-cell whitespace-nowrap">
-                      {formatWhen(row.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                >
+                  <td className="px-4 sm:px-5 py-3.5">
+                    <Link
+                      href={`/admin/leads/${row.conversationId}`}
+                      className="text-foreground hover:text-electric font-medium"
+                    >
+                      {row.name || "Unknown"}
+                    </Link>
+                    <p className="text-[12px] text-foreground-subtle mt-0.5">
+                      {row.email || "—"}
+                    </p>
+                  </td>
+                  <td className="px-4 py-3.5 text-foreground-muted hidden sm:table-cell max-w-[14rem] truncate">
+                    {row.address || "—"}
+                  </td>
+                  <td className="px-4 py-3.5 tabular-nums text-foreground-muted whitespace-nowrap">
+                    {row.valueLow != null && row.valueHigh != null
+                      ? `${formatCad(row.valueLow)} – ${formatCad(row.valueHigh)}`
+                      : "—"}
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <PipelineBadge status={row.pipeline} />
+                  </td>
+                  <td className="px-4 sm:px-5 py-3.5 text-foreground-subtle hidden md:table-cell whitespace-nowrap">
+                    {formatWhen(row.createdAt)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         )}
       </Panel>
     </div>
