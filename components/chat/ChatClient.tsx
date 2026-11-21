@@ -6,20 +6,10 @@ import { Home, Send, Loader2, Sparkles } from "lucide-react";
 
 const SESSION_KEY = "estate-valora-chat-session";
 
-type Source = {
-  title: string;
-  region: string | null;
-  status: string | null;
-  property_type: string | null;
-  source_file: string;
-  kind?: "comp" | "web";
-};
-
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   text: string;
-  sources?: Source[];
   at: string;
 };
 
@@ -46,29 +36,41 @@ export function ChatClient({
           title: "Assistant Estate Valora",
           subtitle:
             "Comparables Estate Valora + recherche web marché (comme ChatGPT).",
-          placeholder: "Ex. Prix moyen des maisons à Fontainebleau?",
+          placeholder:
+            "Ex. Prix moyen des unifamiliales à Saint-Léonard? Ou Fontainebleau?",
           send: "Envoyer",
           empty:
-            "Demandez des moyennes de quartier, des tendances ou des exemples vendus. J’utilise vos PDFs et le web.",
-          sources: "Sources",
+            "Demandez des moyennes de quartier, des tendances ou une fourchette pour une maison. J’utilise vos PDFs et le web.",
+          try: "Essayez",
           valuation: "Estimation guidée →",
           newChat: "Nouvelle conversation",
           disclaimer:
             "Aperçu préliminaire IA — pas une évaluation certifiée. Sous réserve de révision par Ashkan Shamloo.",
+          starters: [
+            "Quel est le prix moyen d’une unifamiliale à Saint-Léonard?",
+            "Combien pourrait valoir une maison détachée 4 chambres sur le boulevard Lacordaire à Saint-Léonard?",
+            "Quel est le prix moyen des maisons à Fontainebleau?",
+          ],
         }
       : {
           title: "Estate Valora assistant",
           subtitle:
             "Estate Valora comps + live web market search (ChatGPT-style).",
-          placeholder: "e.g. What’s the average house price in Fontainebleau?",
+          placeholder:
+            "e.g. Average single-family price in Saint-Léonard? Or Fontainebleau?",
           send: "Send",
           empty:
-            "Ask for neighbourhood averages, trends, or sold examples. I use your PDFs and the web.",
-          sources: "Sources used",
+            "Ask for neighbourhood averages, trends, or a range for a specific home. I use your PDFs and the web.",
+          try: "Try",
           valuation: "Guided valuation →",
           newChat: "New chat",
           disclaimer:
             "Preliminary AI insight — not a certified appraisal. Subject to review by Ashkan Shamloo.",
+          starters: [
+            "What’s the average single-family home price in Saint-Léonard?",
+            "What could a 4-bed detached on Boulevard Lacordaire in Saint-Léonard be worth?",
+            "What’s the average house price in Fontainebleau?",
+          ],
         };
 
   useEffect(() => {
@@ -135,9 +137,8 @@ export function ChatClient({
     setError(null);
   }
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    const text = input.trim();
+  async function sendMessage(raw: string) {
+    const text = raw.trim();
     if (!text || sending) return;
 
     setInput("");
@@ -179,7 +180,6 @@ export function ChatClient({
           id: uid(),
           role: "assistant",
           text: data.reply,
-          sources: data.sources || [],
           at: data.at || new Date().toISOString(),
         },
       ]);
@@ -188,6 +188,11 @@ export function ChatClient({
     } finally {
       setSending(false);
     }
+  }
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    await sendMessage(input);
   }
 
   return (
@@ -269,10 +274,28 @@ export function ChatClient({
             className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5 space-y-3"
           >
             {messages.length === 0 && (
-              <div className="h-full min-h-[240px] flex flex-col items-center justify-center text-center gap-3 px-4">
+              <div className="h-full min-h-[240px] flex flex-col items-center justify-center text-center gap-4 px-4">
                 <p className="text-[15px] text-foreground-muted max-w-md leading-relaxed">
                   {copy.empty}
                 </p>
+                <div className="w-full max-w-lg space-y-2">
+                  <p className="text-[11px] uppercase tracking-[0.1em] text-foreground-subtle">
+                    {copy.try}
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {copy.starters.map((starter) => (
+                      <button
+                        key={starter}
+                        type="button"
+                        disabled={sending}
+                        onClick={() => void sendMessage(starter)}
+                        className="w-full text-left rounded-md border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[13px] sm:text-[14px] text-foreground-muted hover:border-electric/40 hover:text-foreground hover:bg-electric/10 transition-colors disabled:opacity-50"
+                      >
+                        {starter}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <p className="text-[11px] text-foreground-subtle max-w-sm">
                   {copy.disclaimer}
                 </p>
@@ -294,50 +317,6 @@ export function ChatClient({
                   }`}
                 >
                   {m.text}
-                  {m.role === "assistant" &&
-                    m.sources &&
-                    m.sources.length > 0 && (
-                      <div className="mt-3 pt-2 border-t border-white/10">
-                        <p className="text-[10px] uppercase tracking-[0.1em] text-foreground-subtle mb-1.5">
-                          {copy.sources}
-                        </p>
-                        <ul className="space-y-1">
-                          {m.sources.map((s) => (
-                            <li
-                              key={`${s.kind || "comp"}-${s.source_file}`}
-                              className="text-[12px] text-foreground-muted break-all"
-                            >
-                              {s.kind === "web" ? "Web · " : "Comp · "}
-                              {s.source_file.startsWith("http") ? (
-                                <a
-                                  href={s.source_file}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-electric hover:underline"
-                                >
-                                  {s.title}
-                                </a>
-                              ) : (
-                                <>
-                                  {s.title}
-                                  {[s.region, s.status, s.property_type]
-                                    .filter(Boolean)
-                                    .length > 0
-                                    ? ` · ${[
-                                        s.region,
-                                        s.status,
-                                        s.property_type,
-                                      ]
-                                        .filter(Boolean)
-                                        .join(" · ")}`
-                                    : ""}
-                                </>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                 </div>
               </div>
             ))}

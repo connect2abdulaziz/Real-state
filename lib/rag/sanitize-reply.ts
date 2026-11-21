@@ -18,8 +18,14 @@ export function sanitizeChatReply(text: string): string {
   t = t.replace(/(?<!\w)\*([^*]+)\*(?!\w)/g, "$1");
   t = t.replace(/(?<!\w)_([^_]+)_(?!\w)/g, "$1");
 
-  // Markdown links [label](url) → label (url)
-  t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, "$1 ($2)");
+  // Markdown links [label](url) → label only (drop URL)
+  t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, "$1");
+
+  // Strip trailing Sources / References blocks (EN + FR)
+  t = t.replace(
+    /\n+(?:#{1,6}\s*)?(?:sources?(?:\s+used)?|references?|références?|citations?)\s*:?\s*\n[\s\S]*$/i,
+    ""
+  );
 
   // Simple markdown tables → plain lines
   const lines = t.split("\n");
@@ -27,6 +33,14 @@ export function sanitizeChatReply(text: string): string {
   for (const line of lines) {
     const trimmed = line.trim();
     if (/^\|?[\s:-]+\|[\s|:-]*$/.test(trimmed)) continue; // separator row
+    // Drop bare URL-only / citation lines
+    if (/^https?:\/\/\S+$/i.test(trimmed)) continue;
+    if (
+      /^(?:web|comp|source|réf(?:érence)?)\s*[·•:\-–]\s*.+/i.test(trimmed) &&
+      /https?:\/\//i.test(trimmed)
+    ) {
+      continue;
+    }
     if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
       const cells = trimmed
         .slice(1, -1)
@@ -59,7 +73,21 @@ export function sanitizeChatReply(text: string): string {
     ""
   );
 
-  // Collapse excess blank lines
+  // Soften inline "according to Site" / "selon Site" citations; keep numbers/context
+  t = t.replace(
+    /\b(?:according to|per|via|from)\s+(?:Equipe AJ(?:\s*\/\s*Centris)?|OpenHouse(?:\s*QC)?|HousingPortal|HonestDoor|Centris|realtor\.ca|APCIQ|QAREB|JLR)(?:\s*\([^)]*\))?(?:,?\s*)?/gi,
+    ""
+  );
+  t = t.replace(
+    /\b(?:selon|d['’]après|via|d['’]après)\s+(?:Equipe AJ(?:\s*\/\s*Centris)?|OpenHouse(?:\s*QC)?|HousingPortal|HonestDoor|Centris|realtor\.ca|APCIQ|QAREB|JLR)(?:\s*\([^)]*\))?(?:,?\s*)?/gi,
+    ""
+  );
+
+  // Remove leftover bare URLs inside sentences
+  t = t.replace(/\(?https?:\/\/[^\s)]+\)?/gi, "");
+
+  // Collapse excess blank lines / leftover double spaces
+  t = t.replace(/[ \t]{2,}/g, " ");
   t = t.replace(/\n{3,}/g, "\n\n").trim();
   return t;
 }

@@ -226,11 +226,13 @@ export async function POST(req: Request) {
       })
       .eq("id", sessionId);
 
+    // Client feedback: do not show references/sources in the chat UI.
+    // Keep lastSources in answers for admin/debug only.
     return NextResponse.json({
       ok: true,
       sessionId,
       reply,
-      sources,
+      sources: [],
       via,
       model: resolveChatModel(),
       at: aiMsg.at,
