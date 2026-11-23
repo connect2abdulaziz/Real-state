@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { ValuationRecord } from "@/lib/types";
 import { ConsultationCTA } from "@/components/valuation/ConsultationCTA";
+import { extractReportExtras } from "@/lib/report/report-extras";
 import type { Locale } from "@/lib/i18n/copy";
 import { UI } from "@/lib/i18n/copy";
 
@@ -42,6 +43,7 @@ export function ValuationPanel({
   const copy = UI[locale];
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const extras = valuation ? extractReportExtras(valuation) : null;
 
   async function downloadReport() {
     if (!valuation?.id) return;
@@ -129,11 +131,43 @@ export function ValuationPanel({
               </span>
               {formatCurrency(valuation.estimated_value_high, locale)}
             </p>
+            {extras?.estimated_value_mid != null && (
+              <p className="mt-2 text-[15px] text-foreground">
+                {copy.valueMid}:{" "}
+                <span className="font-medium">
+                  {formatCurrency(extras.estimated_value_mid, locale)}
+                </span>
+              </p>
+            )}
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-foreground-muted">
+              {extras?.expected_selling_price_cad != null && (
+                <p>
+                  {copy.expectedSelling}:{" "}
+                  <span className="text-foreground">
+                    {formatCurrency(extras.expected_selling_price_cad, locale)}
+                  </span>
+                </p>
+              )}
+              {extras?.recommended_list_price_cad != null && (
+                <p>
+                  {copy.recommendedList}:{" "}
+                  <span className="text-foreground">
+                    {formatCurrency(extras.recommended_list_price_cad, locale)}
+                  </span>
+                </p>
+              )}
+            </div>
             <p className="mt-3 text-[13px] text-foreground-muted">
               {copy.confidence}:{" "}
               <span className="text-foreground capitalize">
                 {valuation.confidence}
               </span>
+              {extras?.data_quality ? (
+                <span className="text-foreground-subtle">
+                  {" "}
+                  · {extras.data_quality}
+                </span>
+              ) : null}
             </p>
             <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3">
               <button
@@ -162,6 +196,35 @@ export function ValuationPanel({
         </div>
 
         <div className="bg-surface-soft p-5 sm:p-8 min-w-0">
+          {extras?.methodology ? (
+            <div className="mb-7">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-electric mb-3">
+                {copy.methodology}
+              </p>
+              <p className="text-[14px] sm:text-[15px] text-foreground leading-relaxed max-w-4xl break-words">
+                {extras.methodology}
+              </p>
+            </div>
+          ) : null}
+
+          {extras && extras.key_value_drivers.length > 0 ? (
+            <div className="mb-7">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-electric mb-3">
+                {copy.keyDrivers}
+              </p>
+              <ul className="space-y-1.5 max-w-4xl">
+                {extras.key_value_drivers.map((d, i) => (
+                  <li
+                    key={i}
+                    className="text-[13px] text-foreground-muted break-words"
+                  >
+                    · {d}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <p className="text-[11px] uppercase tracking-[0.14em] text-electric mb-3">
             {copy.explanation}
           </p>

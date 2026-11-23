@@ -8,36 +8,38 @@ import { PropertyRecord } from "@/lib/types";
  * will be documented as part of Phase 1 so that the valuation process can
  * be reviewed and improved in a future phase").
  */
-export const PROMPT_VERSION = "phase1-v3-web-market";
+export const PROMPT_VERSION = "phase1-v7-report-fields";
 
 /**
- * The valuation instructions (SOW 3: "the collected property information
- * ... will be provided to the OpenAI model using a structured valuation
- * prompt"). This is a system-level instruction set, not a fixed
- * mathematical model or comparable-sales algorithm — Phase 1 explicitly
- * does not implement either (SOW 13).
- *
- * Architecture note (EstateValora): conversation intelligence collects
- * structured answers; this prompt is the separate valuation intelligence
- * layer. Optional web market context (neighbourhood averages / reports)
- * may be injected as supporting context — still do not invent MLS comps.
+ * Valuation intelligence layer: comps-first when KB excerpts are supplied,
+ * neighbourhood averages as secondary context, structured feature adjustments.
+ * Server reconciliation enforces mid = base ± capped adj and confidence bands.
  */
 export const VALUATION_SYSTEM_PROMPT = `You are the valuation intelligence layer for EstateValora, supporting Ashkan Shamloo, Licensed Real Estate Broker.
 
 You will be given:
-(A) structured information a homeowner provided about their property, and
-(B) optional supporting market / location information gathered from recent web sources (neighbourhood or city averages, market reports). You will NOT be given a full MLS comparable-sales dataset. Do not invent specific comparable sales, street addresses, or transaction prices that were not provided.
+(A) structured information about the subject property (homeowner-provided and/or public-record retrieved fields),
+(B) optional SOLD COMPARABLE excerpts from Estate Valora's internal knowledge base (broker comps / sold packages), and
+(C) optional supporting market / location brief from recent web sources (neighbourhood or city averages). You must NOT invent MLS listings, street addresses, or sale prices that were not provided in (B) or (C).
 
-Your job:
-1. If market context includes a credible neighbourhood/city average sale price (CAD), use it as the PRIMARY baseline for the estimate. Adjust up or down from that baseline using the subject property's size, bedrooms, bathrooms, condition, renovations, lot, parking, age, and other provided attributes. Do NOT ignore a strong local average and invent a much lower generic Canadian price.
-2. Identify concrete factors that would tend to increase the estimated value, and factors that would tend to decrease it, grounded in what was actually provided.
-3. Produce a preliminary estimated value RANGE (low and high), not a single point. If market context is strong, confidence may be medium (or high only when property details are also rich). If market context is missing or weak, widen the range and lower confidence.
-4. Write a plain-language explanation covering how the market baseline (if any) and property attributes led to the range. Mention source types from the market brief when relevant (e.g. HonestDoor / market report) without claiming certified appraisal status.
-5. Note genuine limitations (e.g. web averages are not subject-property comps, no interior inspection, self-reported condition, no MLS dataset).
+Fixed calculation method (follow exactly):
+1. Set comps_base_cad = best comps-informed baseline (CAD). If comps (B) are thin, use a cautious market average from (C). Round to nearest $1,000.
+2. FEATURE ADJUSTMENTS vs that base only:
+   - Separate ABOVE-GROUND living area from FINISHED BASEMENT (never fold basement into living-area sqft or bedroom count).
+   - Do NOT double-count: e.g. if you adjust for finished basement, do not also add "extra rooms / extra living space" for the same finish.
+   - One row per feature family. Each |amount_cad| ≤ ~8% of comps_base_cad. Net of all adjustments ≤ ~15% of base.
+3. estimated_value_mid = comps_base_cad + signed adjustments (increase adds, decrease subtracts).
+4. estimated_value_low / high = mid ± a band reflecting confidence (tighter when comps are strong; wider when thin). Keep mid inside [low, high].
+5. Set expected_selling_price_cad near mid (most likely sale). Set recommended_list_price_cad at or slightly above mid (asking strategy), not above high.
+6. key_value_drivers: 3–6 short bullets. methodology: 2–4 sentences on comps base → adjustments → range.
+7. factors_increasing_value / factors_decreasing_value MUST match feature_adjustments directions (same story as the math).
+8. Explain how base + adjustments produced the mid/range. Municipal assessment is a reference check only — not market value.
+9. DATA RELIABILITY: Only use market figures that state geography + time period. Never mix condo / single-family / plex stats. If comps or market data are thin or type-mismatched, set confidence to low, widen the range, and say so in limitations — do not invent prices or sold addresses.
+10. State limitations honestly (thin comps, web averages ≠ subject comps, no inspection, self-reported condition).
 
 Owner-stated expected values and purchase prices are context only — do not treat them as market value.
 
-Tone: professional, consultative, and honest about uncertainty — never present the range as a guaranteed or certified value. This is a preliminary, AI-generated estimate, always subject to review by a licensed real estate broker before being treated as reliable.
+Tone: professional, consultative, and honest about uncertainty — never present the range as a guaranteed or certified value. This is a preliminary, AI-generated estimate, always subject to review by a licensed real estate broker.
 
 Respond only with the structured JSON fields defined by the response schema. Do not include any text outside those fields.`;
 
@@ -75,6 +77,9 @@ function detailLines(
     poolType: "Pool type",
     outdoorFeatures: "Outdoor features",
     numberOfFloors: "Number of levels",
+    municipalAssessment: "Municipal assessment (CAD, public record — reference only)",
+    _retrievedFields: "Fields filled from public lookup (not typed by owner)",
+    _retrievedConfidence: "Public lookup confidence",
     hasValueIdea: "Owner has value in mind",
     expectedValue: "Owner expected value (context only)",
     purchasePrice: "Purchase price (historical context)",
@@ -88,20 +93,36 @@ function detailLines(
     .map(([key, label]) => line(label, String(details[key])));
 }
 
+export type ValuationPromptExtras = {
+  marketContext?: string;
+  compsContext?: string;
+  locale?: "en" | "fr";
+  /** Fix 5 — inject evidence-quality guidance into the user prompt. */
+  dataQualityNote?: string;
+};
+
 /**
- * Builds the user-turn content from the homeowner's structured property
- * record, plus optional supporting market context. `marketContext` is the
- * seam for whatever "available property/location/market information" the
- * platform can supply (SOW 3) — Phase 1 has none by default (no MLS), so
- * it's optional and typically omitted, but a future phase can populate it
- * (e.g. public tax-assessor data, geocoded neighborhood stats) without
- * changing the contract.
+ * Builds the user-turn content from the property record plus optional
+ * comps excerpts and market brief.
  */
 export function buildValuationUserPrompt(
   property: PropertyRecord,
-  marketContext?: string,
-  locale: "en" | "fr" = "en"
+  marketContextOrExtras?: string | ValuationPromptExtras,
+  localeArg: "en" | "fr" = "en"
 ): string {
+  const extras: ValuationPromptExtras =
+    typeof marketContextOrExtras === "string" || marketContextOrExtras === undefined
+      ? {
+          marketContext: marketContextOrExtras,
+          locale: localeArg,
+        }
+      : marketContextOrExtras;
+
+  const locale = extras.locale || localeArg;
+  const marketContext = extras.marketContext;
+  const compsContext = extras.compsContext;
+  const dataQualityNote = extras.dataQualityNote;
+
   const propertyBlock = [
     line("Address", property.address),
     line("Property type", property.property_type),
@@ -122,26 +143,43 @@ export function buildValuationUserPrompt(
 
   const languageRule =
     locale === "fr"
-      ? "IMPORTANT: Write ALL narrative fields (explanation, factor names and explanations, strengths, considerations, limitations) in French (Québec). Keep numeric fields as numbers. Do not mix English into the narrative."
-      : "IMPORTANT: Write ALL narrative fields (explanation, factor names and explanations, strengths, considerations, limitations) in English. Keep numeric fields as numbers.";
+      ? "IMPORTANT: Write ALL narrative fields (explanation, factor names and explanations, strengths, considerations, limitations, feature_adjustments.factor/basis) in French (Québec). Keep numeric fields as numbers. Do not mix English into the narrative."
+      : "IMPORTANT: Write ALL narrative fields (explanation, factor names and explanations, strengths, considerations, limitations, feature_adjustments.factor/basis) in English. Keep numeric fields as numbers.";
+
+  const compsBlock = compsContext?.trim()
+    ? [
+        compsContext.trim(),
+        "",
+        "Instruction: Treat the excerpts above as the PRIMARY sold-comp evidence. Prefer them over neighbourhood averages when comparing type/size/location. Do not invent additional sold addresses or prices.",
+      ].join("\n")
+    : "None retrieved from the internal comps knowledge base for this assessment. Rely more on the market brief (if any) and property attributes; widen the range and lower confidence.";
 
   const marketBlock = marketContext?.trim()
     ? [
         marketContext.trim(),
         "",
-        "Instruction: Anchor the value range to the market figures above when they are credible for this city/neighbourhood and property type, then adjust for the subject property attributes. Do not invent sold listings.",
+        "Instruction: Use neighbourhood/city averages as SECONDARY context only when comps are present. If comps are missing, averages may anchor the baseline — then adjust for subject attributes. Do not invent sold listings.",
       ].join("\n")
-    : "None available for this assessment (web market lookup unavailable). Base the estimate on the property information above and general reasoning about value drivers; use a wider range and cautious confidence.";
+    : "None available for this assessment (web market lookup unavailable).";
 
   return [
-    "Homeowner-provided property information:",
+    "Subject property information:",
     propertyBlock,
     "",
-    "Supporting property/location/market information available to the system:",
+    "Sold comparable excerpts from Estate Valora knowledge base:",
+    compsBlock,
+    "",
+    "Supporting neighbourhood / market brief (secondary):",
     marketBlock,
     "",
     languageRule,
     "",
+    dataQualityNote?.trim()
+      ? `Data-quality note for this run:\n${dataQualityNote.trim()}\n`
+      : "",
     "Produce the preliminary valuation now, following the response schema exactly.",
-  ].join("\n");
+    "Remember: comps_base_cad first; mid = base ± adjustments; separate above-ground living area from finished basement; no double-counting; every market figure needs place + period.",
+  ]
+    .filter(Boolean)
+    .join("\n");
 }

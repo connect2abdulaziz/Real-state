@@ -54,6 +54,9 @@ export function toExtractableStep(step: ConversationStep): ExtractableStep {
   };
 }
 
+const MULTI_EXTRACT_CUES =
+  /[,;]| and | et | with | avec |\d+\s*(bed|bath|chambre|salle|sq|pi|m²|m2)|garage|basement|sous-sol|renov|piscine|pool/i;
+
 /** Whether this user turn looks like natural language that may hold extra answers. */
 export function shouldAttemptMultiExtract(
   step: ConversationStep,
@@ -65,8 +68,8 @@ export function shouldAttemptMultiExtract(
   // Exact chip / yes-no click — no extras expected
   if (step.options?.includes(v)) return false;
   if (step.type === "yesno" && /^(yes|no|oui|non)$/i.test(v)) return false;
-  // Very short numeric / single token — usually answering only this step
-  if (v.length < 10 && !/[,;]| and | et | with | avec |\d+\s*(bed|bath|sq|pi|m²|m2)/i.test(v)) {
+  // Short numeric / single token — usually answering only this step
+  if (v.length < 8 && !MULTI_EXTRACT_CUES.test(v)) {
     return false;
   }
   return true;
@@ -430,25 +433,22 @@ export function heuristicExtract(
 }
 
 /**
- * After a ChatGPT-style describe paragraph: fill gaps + skip optional fishing.
+ * After a rich free-text answer (describe or multi-extract): skip optional
+ * fishing questions the user did not volunteer. Never overwrites real values.
  */
-export function applyDescribeEnrichment(
-  narrative: string,
+export function applyRichAnswerOptionalSkip(
+  message: string,
   answers: Answers,
   openSteps: ExtractableStep[]
 ): Answers {
   const next: Answers = { ...answers };
-  const heuristic = heuristicExtract(narrative, openSteps, next);
-  for (const [k, v] of Object.entries(heuristic)) {
-    if (v && !next[k]) next[k] = v;
-  }
+  const byId = Object.fromEntries(openSteps.map((s) => [s.id, s]));
 
   // Default pool to No when never mentioned (avoid fishing after a full describe)
-  const byId = Object.fromEntries(openSteps.map((s) => [s.id, s]));
   if (
     byId.hasPool &&
     !next.hasPool &&
-    !/\bpool\b|\bpiscine\b/i.test(narrative)
+    !/\bpool\b|\bpiscine\b/i.test(message)
   ) {
     next.hasPool = "No";
   }
@@ -461,6 +461,22 @@ export function applyDescribeEnrichment(
   }
 
   return next;
+}
+
+/**
+ * After a ChatGPT-style describe paragraph: fill gaps + skip optional fishing.
+ */
+export function applyDescribeEnrichment(
+  narrative: string,
+  answers: Answers,
+  openSteps: ExtractableStep[]
+): Answers {
+  const next: Answers = { ...answers };
+  const heuristic = heuristicExtract(narrative, openSteps, next);
+  for (const [k, v] of Object.entries(heuristic)) {
+    if (v && !next[k]) next[k] = v;
+  }
+  return applyRichAnswerOptionalSkip(narrative, next, openSteps);
 }
 
 export async function extractAnswersFromMessage(args: {

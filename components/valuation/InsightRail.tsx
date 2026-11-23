@@ -7,18 +7,32 @@ import {
   SELLER_FIELD_LABELS_FR,
 } from "@/lib/valuation/seller-i18n";
 import { BUYER_FIELD_LABELS } from "@/lib/buyer/steps";
+import { retrievedFieldSet } from "@/lib/conversation/apply-property-facts";
 import type { Locale } from "@/lib/i18n/copy";
 import { UI } from "@/lib/i18n/copy";
 import { MapPin, User, Compass, Shield } from "lucide-react";
 
-const HIGHLIGHT_KEYS = [
+/** Prefer these near the top when present; other captured fields follow. */
+const PRIORITY_KEYS = [
   "streetAddress",
   "city",
+  "postalCode",
   "propertyType",
+  "ownership",
+  "yearBuilt",
   "bedrooms",
   "fullBathrooms",
   "livingArea",
+  "livingAreaUnit",
+  "lotSize",
+  "municipalAssessment",
   "condition",
+  "hasBasement",
+  "basementFinished",
+  "garageType",
+  "parkingSpaces",
+  "hasRenovations",
+  "renovationTypes",
   "motivation",
   "sellingTimeline",
   "preferredCity",
@@ -26,7 +40,19 @@ const HIGHLIGHT_KEYS = [
   "buyerBudget",
   "buyingTimeline",
   "homeownerName",
+  "homeownerEmail",
 ] as const;
+
+const HIDDEN_KEYS = new Set([
+  "locale",
+  "intent",
+  "inputMode",
+  "propertyNarrative",
+  "leadType",
+  "addressConfirm",
+]);
+
+const MAX_VISIBLE = 15;
 
 function labelFor(key: string, locale: Locale): string {
   if (locale === "fr") {
@@ -45,6 +71,9 @@ function valueFor(key: string, value: string, locale: Locale): string {
   const copy = UI[locale];
   if (value === "Yes" || value === "Oui") return copy.yes;
   if (value === "No" || value === "Non") return copy.no;
+  if (key === "livingArea" && locale) {
+    return value;
+  }
   if (locale !== "fr") return value;
   const step = getSellerSteps("fr").find((s) => s.id === key);
   if (!step?.options?.length) return value;
@@ -62,6 +91,37 @@ function valueFor(key: string, value: string, locale: Locale): string {
   return idx >= 0 ? labels[idx] ?? value : value;
 }
 
+function collectedEntries(answers: Answers, locale: Locale) {
+  const entries: { key: string; label: string; value: string }[] = [];
+  const seen = new Set<string>();
+  const retrieved = retrievedFieldSet(answers);
+  const suffix = UI[locale].retrievedSuffix;
+
+  const push = (key: string) => {
+    if (seen.has(key)) return;
+    if (key.startsWith("_")) return;
+    if (HIDDEN_KEYS.has(key)) return;
+    // Assessment is stored for valuation; skip cluttering the rail unless retrieved
+    if (key === "municipalAssessment" && !retrieved.has(key)) return;
+    const raw = answers[key];
+    if (!raw || raw === "Skipped") return;
+    seen.add(key);
+    const base = labelFor(key, locale);
+    const label =
+      retrieved.has(key) && suffix ? `${base} ${suffix}` : base;
+    entries.push({
+      key,
+      label,
+      value: valueFor(key, raw, locale),
+    });
+  };
+
+  for (const key of PRIORITY_KEYS) push(key);
+  for (const key of Object.keys(answers)) push(key);
+
+  return entries;
+}
+
 export function InsightRail({
   started,
   finished,
@@ -76,10 +136,9 @@ export function InsightRail({
   locale?: Locale;
 }) {
   const copy = UI[locale];
-  const highlights = HIGHLIGHT_KEYS.filter((k) => answers[k]).map((k) => ({
-    label: labelFor(k, locale),
-    value: valueFor(k, answers[k], locale),
-  }));
+  const all = collectedEntries(answers, locale);
+  const visible = all.slice(0, MAX_VISIBLE);
+  const extra = all.length - visible.length;
 
   return (
     <aside className="hidden xl:flex flex-col w-[300px] 2xl:w-[340px] shrink-0 h-full min-h-0">
@@ -128,14 +187,14 @@ export function InsightRail({
               <p className="text-[11px] uppercase tracking-[0.12em] text-foreground-subtle mb-3">
                 {copy.collected}
               </p>
-              {highlights.length === 0 ? (
+              {visible.length === 0 ? (
                 <p className="text-[13px] text-foreground-muted">
                   {copy.waitingAnswers}
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {highlights.map((h) => (
-                    <div key={h.label} className="min-w-0">
+                  {visible.map((h) => (
+                    <div key={h.key} className="min-w-0">
                       <p className="text-[11px] text-foreground-subtle">
                         {h.label}
                       </p>
@@ -144,6 +203,11 @@ export function InsightRail({
                       </p>
                     </div>
                   ))}
+                  {extra > 0 && (
+                    <p className="text-[12px] text-foreground-subtle">
+                      {copy.moreCollected.replace("{count}", String(extra))}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

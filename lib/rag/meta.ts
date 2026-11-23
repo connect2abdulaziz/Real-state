@@ -55,6 +55,24 @@ export function inferMetaFromPath(filePath: string): CompMeta {
   };
 }
 
+/** Map Estate Valora conversation property types → KB filter. */
+export function mapEstateTypeToCompFilter(
+  propertyType: string | null | undefined
+): CompPropertyType | undefined {
+  if (!propertyType) return undefined;
+  const lower = propertyType.toLowerCase();
+  if (/condo|appartement|apartment/.test(lower)) return "condo";
+  if (
+    /single|detached|townhouse|maison|unifamiliale|bungalow|cottage|house/.test(
+      lower
+    )
+  ) {
+    return "single_family";
+  }
+  if (/duplex|triplex|fourplex|plex|multi|income/.test(lower)) return "other";
+  return undefined;
+}
+
 /** Detect soft filters from a user question for RAG retrieval. */
 export function inferQueryFilters(message: string): {
   property_type?: CompPropertyType;

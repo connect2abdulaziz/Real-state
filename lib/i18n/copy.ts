@@ -45,6 +45,13 @@ const shared = {
       "I couldn't pick up enough detail yet. No problem — we'll fill the gaps with a few short questions (you can still type in your own words).",
     guidedHint:
       "Pick a suggestion or type your answer — same box either way.",
+    sectionNext: "Next: {section}",
+    moreCollected: "+{count} more captured",
+    retrievedSuffix: "(retrieved)",
+    propertyLookupFound:
+      "I found public property records for this address and filled: {fields}. These are retrieved (not typed by you) — please confirm or correct as we continue.",
+    propertyLookupNone:
+      "I couldn't find reliable public records for this address yet — we'll collect the details together.",
     buyerDone:
       "Thank you. I've saved your buyer preferences. You can book a phone or video consultation with Ashkan's team below.",
     sellerDone:
@@ -108,9 +115,17 @@ const shared = {
       "We couldn't generate an estimate right now. Ashkan Shamloo will still receive your details.",
     preliminaryEstimate: "Estate Valora preliminary estimate",
     confidence: "Confidence",
+    valueLow: "Low",
+    valueMid: "Average",
+    valueHigh: "High",
+    expectedSelling: "Expected selling price",
+    recommendedList: "Recommended list price",
+    methodology: "Methodology",
+    keyDrivers: "Key value drivers",
     downloadReport: "Download Estate Valora report",
     preparingPdf: "Preparing PDF…",
-    pdfHint: "Branded PDF with your range, factors, disclaimer, and next steps.",
+    pdfHint:
+      "Branded PDF with low / average / high, list & expected prices, methodology, and next steps.",
     explanation: "Explanation",
     factorsIncreasing: "Factors increasing value",
     factorsDecreasing: "Factors decreasing value",
@@ -178,6 +193,13 @@ const shared = {
       "Je n'ai pas encore assez de détails. Pas de souci — on comblera les manques avec quelques courtes questions (vous pouvez toujours écrire librement).",
     guidedHint:
       "Choisissez une suggestion ou tapez votre réponse — même zone dans les deux cas.",
+    sectionNext: "Ensuite : {section}",
+    moreCollected: "+{count} autres détails capturés",
+    retrievedSuffix: "(relevé)",
+    propertyLookupFound:
+      "J'ai trouvé des données publiques pour cette adresse et j'ai rempli : {fields}. Ce sont des relevés (pas saisis par vous) — confirmez ou corrigez au besoin.",
+    propertyLookupNone:
+      "Je n'ai pas trouvé de données publiques fiables pour cette adresse — nous collecterons les détails ensemble.",
     buyerDone:
       "Merci. J'ai enregistré vos préférences d'acheteur. Vous pouvez réserver une consultation téléphonique ou vidéo avec l'équipe d'Ashkan ci-dessous.",
     sellerDone:
@@ -238,10 +260,17 @@ const shared = {
       "Nous n'avons pas pu générer d'estimation pour le moment. Ashkan Shamloo recevra tout de même vos détails.",
     preliminaryEstimate: "Estimation préliminaire Estate Valora",
     confidence: "Confiance",
+    valueLow: "Bas",
+    valueMid: "Moyen",
+    valueHigh: "Haut",
+    expectedSelling: "Prix de vente attendu",
+    recommendedList: "Prix affiché recommandé",
+    methodology: "Méthodologie",
+    keyDrivers: "Principaux facteurs de valeur",
     downloadReport: "Télécharger le rapport Estate Valora",
     preparingPdf: "Préparation du PDF…",
     pdfHint:
-      "PDF de marque avec votre fourchette, les facteurs, l'avis et les prochaines étapes.",
+      "PDF de marque avec bas / moyen / haut, prix affiché et attendu, méthodologie et prochaines étapes.",
     explanation: "Explication",
     factorsIncreasing: "Facteurs qui augmentent la valeur",
     factorsDecreasing: "Facteurs qui diminuent la valeur",

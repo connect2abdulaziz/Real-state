@@ -42,5 +42,5 @@ export const REPORT_BRAND = {
     "Book a phone or video consultation when you are ready to go deeper.",
   ],
   disclaimer:
-    "This Estate Valora report is an AI-assisted preliminary estimate based on information you provided and any supporting context available to the system at the time of assessment. It is not a certified appraisal, not a guaranteed selling price, and not a formal market valuation. The result is subject to personal review by Ashkan Shamloo, Licensed Real Estate Broker. MLS data and comprehensive sold-property comparable analysis are not used in Phase 1.",
+    "This Estate Valora report is an AI-assisted preliminary estimate based on information you provided, public/property context when available, internal sold-comp excerpts when retrieved, and supporting market briefs. It is not a certified appraisal, not a guaranteed selling price, and not a formal market valuation. Recommended list and expected selling prices are strategic indications only. The result is subject to personal review by Ashkan Shamloo, Licensed Real Estate Broker.",
 } as const;

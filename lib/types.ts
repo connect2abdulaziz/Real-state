@@ -91,21 +91,39 @@ export interface ValuationFactor {
   explanation: string;
 }
 
+export interface FeatureAdjustment {
+  factor: string;
+  direction: "increase" | "decrease";
+  amount_cad: number;
+  percent: number;
+  basis: string;
+}
+
 /**
  * The structured shape returned by the OpenAI valuation call. This is the
  * "expected output structure" the app enforces (SOW 3/4.2: "The application
  * will control the required inputs and expected output structure rather
  * than allowing the model to return an unrestricted response").
+ *
+ * Mid / comps_base / feature_adjustments live primarily in raw_model_output;
+ * DB columns still store low/high for the range UI.
  */
 export interface ValuationResult {
   estimated_value_low: number;
   estimated_value_high: number;
+  estimated_value_mid?: number;
+  comps_base_cad?: number;
+  recommended_list_price_cad?: number;
+  expected_selling_price_cad?: number;
   confidence: ValuationConfidence;
+  feature_adjustments?: FeatureAdjustment[];
   factors_increasing_value: ValuationFactor[];
   factors_decreasing_value: ValuationFactor[];
+  key_value_drivers?: string[];
   property_strengths: string[];
   potential_considerations: string[];
   market_observations: string[];
+  methodology?: string;
   explanation: string;
   limitations: string;
 }
@@ -121,6 +139,8 @@ export interface ValuationRecord extends ValuationResult {
   error_message: string | null;
   report_generated_at?: string | null;
   created_at: string;
+  /** Full model + reconcile payload (mid, list price, methodology, etc.). */
+  raw_model_output?: Record<string, unknown> | null;
 }
 
 export type ConsultationChannel = "phone" | "video";

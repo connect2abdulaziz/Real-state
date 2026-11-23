@@ -363,4 +363,6 @@ export const SELLER_FIELD_LABELS_FR: Record<string, string> = {
   expectedValue: "Valeur estimée (client)",
   purchasePrice: "Prix d'achat",
   purchaseYear: "Année d'achat",
+  numberOfFloors: "Étages",
+  municipalAssessment: "Évaluation municipale",
 };

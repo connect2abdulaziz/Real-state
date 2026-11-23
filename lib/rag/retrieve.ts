@@ -47,8 +47,15 @@ export async function retrieveChunks(
     property_type?: CompPropertyType;
     status?: CompStatus;
     region?: string;
+    /**
+     * When false, do not drop property_type/status filters on empty results
+     * (valuation Fix 5 — avoid mixing condo with single-family).
+     * Chat keeps the default true for broader answers.
+     */
+    allowUnfilteredFallback?: boolean;
   }
 ): Promise<RetrievedChunk[]> {
+  const allowUnfiltered = opts?.allowUnfilteredFallback !== false;
   const filters = {
     ...inferQueryFilters(query),
     ...opts,
@@ -58,45 +65,54 @@ export async function retrieveChunks(
   const supabase = createAdminClient();
 
   const vectorLiteral = `[${embedding.join(",")}]`;
+  const matchCount = opts?.matchCount ?? 8;
 
-  const { data, error } = await supabase.rpc("match_kb_chunks", {
-    query_embedding: vectorLiteral,
-    match_count: opts?.matchCount ?? 8,
-    filter_property_type: filters.property_type ?? null,
-    filter_status: filters.status ?? null,
-    filter_region: filters.region ?? null,
-  });
-
-  if (error) {
-    console.error("match_kb_chunks failed:", error);
-    // Retry without filters if filtered search fails or returns nothing useful
-    const retry = await supabase.rpc("match_kb_chunks", {
+  const run = async (args: {
+    property_type: string | null;
+    status: string | null;
+    region: string | null;
+  }) => {
+    const { data, error } = await supabase.rpc("match_kb_chunks", {
       query_embedding: vectorLiteral,
-      match_count: opts?.matchCount ?? 8,
-      filter_property_type: null,
-      filter_status: null,
-      filter_region: null,
+      match_count: matchCount,
+      filter_property_type: args.property_type,
+      filter_status: args.status,
+      filter_region: args.region,
     });
-    if (retry.error) {
-      console.error("match_kb_chunks unfiltered failed:", retry.error);
-      return [];
+    if (error) {
+      console.error("match_kb_chunks failed:", error);
+      return [] as RetrievedChunk[];
     }
-    return (retry.data || []) as RetrievedChunk[];
-  }
+    return (data || []) as RetrievedChunk[];
+  };
 
-  const rows = (data || []) as RetrievedChunk[];
+  // 1) Full soft filters
+  let rows = await run({
+    property_type: filters.property_type ?? null,
+    status: filters.status ?? null,
+    region: filters.region ?? null,
+  });
   if (rows.length > 0) return rows;
 
-  // Soft filters may be too strict — fall back unfiltered
-  const retry = await supabase.rpc("match_kb_chunks", {
-    query_embedding: vectorLiteral,
-    match_count: opts?.matchCount ?? 8,
-    filter_property_type: null,
-    filter_status: null,
-    filter_region: null,
+  // 2) Drop region only (keep type + status)
+  if (filters.region) {
+    rows = await run({
+      property_type: filters.property_type ?? null,
+      status: filters.status ?? null,
+      region: null,
+    });
+    if (rows.length > 0) return rows;
+  }
+
+  // 3) Optional: drop all filters (chat). Valuation sets allowUnfilteredFallback=false.
+  if (!allowUnfiltered) return [];
+
+  rows = await run({
+    property_type: null,
+    status: null,
+    region: null,
   });
-  if (retry.error) return [];
-  return (retry.data || []) as RetrievedChunk[];
+  return rows;
 }
 
 export function buildChatSystemPrompt(locale: "en" | "fr"): string {

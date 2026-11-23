@@ -12,6 +12,7 @@ import {
   formatCad,
   formatFactorList,
 } from "@/lib/report/types";
+import { extractReportExtras } from "@/lib/report/report-extras";
 
 const colors = {
   bg: "#07090b",
@@ -172,6 +173,7 @@ function BulletList({ items }: { items: string[] }) {
 
 function EstateValoraReportDocument({ data }: { data: ReportData }) {
   const { valuation, property, homeowner, generatedAt } = data;
+  const extras = extractReportExtras(valuation);
   const dateLabel = new Date(generatedAt).toLocaleDateString("en-CA", {
     year: "numeric",
     month: "long",
@@ -180,6 +182,10 @@ function EstateValoraReportDocument({ data }: { data: ReportData }) {
 
   const increasing = formatFactorList(valuation.factors_increasing_value);
   const decreasing = formatFactorList(valuation.factors_decreasing_value);
+  const adjustmentLines = extras.feature_adjustments.map((a) => {
+    const sign = a.direction === "increase" ? "+" : "−";
+    return `${a.factor}: ${sign}${formatCad(a.amount_cad)} — ${a.basis}`;
+  });
 
   return (
     <Document
@@ -266,20 +272,70 @@ function EstateValoraReportDocument({ data }: { data: ReportData }) {
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Estimated market value</Text>
-          <Text style={styles.range}>
-            {formatCad(valuation.estimated_value_low)} –{" "}
-            {formatCad(valuation.estimated_value_high)}
+          <View style={styles.grid}>
+            <Field
+              label="Low"
+              value={formatCad(valuation.estimated_value_low)}
+            />
+            <Field
+              label="Average (mid)"
+              value={formatCad(extras.estimated_value_mid)}
+            />
+            <Field
+              label="High"
+              value={formatCad(valuation.estimated_value_high)}
+            />
+            <Field
+              label="Expected selling price"
+              value={formatCad(extras.expected_selling_price_cad)}
+            />
+            <Field
+              label="Recommended list price"
+              value={formatCad(extras.recommended_list_price_cad)}
+            />
+            <Field
+              label="Confidence"
+              value={`${valuation.confidence}${
+                extras.data_quality ? ` · data: ${extras.data_quality}` : ""
+              }`}
+            />
+          </View>
+          <Text style={[styles.muted, { marginTop: 6 }]}>
+            AI-assisted indications only — not a guaranteed selling price.
+            List and expected prices are strategic suggestions for discussion
+            with {REPORT_BRAND.brokerName}.
           </Text>
-          <Text style={styles.muted}>
-            Confidence: {valuation.confidence} · AI-assisted range, not a
-            guaranteed selling price
-          </Text>
+        </View>
+
+        {extras.methodology ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Methodology</Text>
+            <Text style={styles.body}>{extras.methodology}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Key value drivers</Text>
+          <BulletList
+            items={
+              extras.key_value_drivers.length
+                ? extras.key_value_drivers
+                : ["See factors below."]
+            }
+          />
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Explanation</Text>
           <Text style={styles.body}>{valuation.explanation || "—"}</Text>
         </View>
+
+        {adjustmentLines.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Feature adjustments</Text>
+            <BulletList items={adjustmentLines} />
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Factors influencing the estimate</Text>
@@ -307,8 +363,9 @@ function EstateValoraReportDocument({ data }: { data: ReportData }) {
           <Text style={styles.sectionLabel}>Market / property observations</Text>
           <BulletList items={valuation.market_observations || []} />
           <Text style={[styles.muted, { marginTop: 6 }]}>
-            Phase 1 does not include MLS or comprehensive sold-comparable data.
-            Observations reflect information available to the system only.
+            Observations reflect retrieved comps excerpts (when available),
+            public/market briefs, and homeowner-provided details — not a full
+            MLS appraisal file.
           </Text>
         </View>
 

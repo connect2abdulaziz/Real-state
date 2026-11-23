@@ -141,6 +141,10 @@ export function buildPropertyInsert(
     "purchaseYear",
     "motivation",
     "sellingTimeline",
+    "municipalAssessment",
+    "_retrievedFields",
+    "_retrievedAt",
+    "_retrievedConfidence",
   ]);
 
   return {

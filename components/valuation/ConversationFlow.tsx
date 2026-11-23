@@ -6,6 +6,7 @@ import { FIELD_LABELS, SECTIONS } from "@/lib/valuation/steps";
 import {
   getSellerSteps,
   SELLER_FIELD_LABELS_FR,
+  sellerSectionLabel,
   visibleSellerSteps,
 } from "@/lib/valuation/seller-i18n";
 import {
@@ -13,6 +14,9 @@ import {
   BUYER_SECTIONS,
   visibleBuyerSteps,
 } from "@/lib/buyer/steps";
+import {
+  findNextUnansweredStepIndex,
+} from "@/lib/conversation/next-step";
 import {
   Answers,
   ConversationStep,
@@ -38,9 +42,15 @@ import {
 } from "@/lib/valuation/parse-measure";
 import {
   applyDescribeEnrichment,
+  applyRichAnswerOptionalSkip,
   shouldAttemptMultiExtract,
   toExtractableStep,
 } from "@/lib/conversation/extract-answers";
+import {
+  applyPropertyFactsToAnswers,
+  formatRetrievedNote,
+} from "@/lib/conversation/apply-property-facts";
+import type { PropertyFacts } from "@/lib/valuation/fetch-property-facts";
 import { ProgressRail } from "./ProgressRail";
 import { InsightRail } from "./InsightRail";
 import { StepInput } from "./StepInput";
@@ -107,6 +117,74 @@ async function patchConversation(
   });
   if (!res.ok) throw new Error("Failed to save progress");
   return res.json() as Promise<ConversationPatchResponse>;
+}
+
+function fieldLabelsForLocale(locale: Locale): Record<string, string> {
+  if (locale !== "fr") return { ...FIELD_LABELS };
+  return { ...FIELD_LABELS, ...SELLER_FIELD_LABELS_FR };
+}
+
+/**
+ * Once per conversation: look up public property facts after we have a street
+ * plus city or postal, then prefill empty answer fields.
+ */
+async function enrichAnswersFromPropertyLookup(args: {
+  answers: Answers;
+  locale: Locale;
+  copy: (typeof UI)["en"];
+}): Promise<{ answers: Answers; note: string | null }> {
+  const { locale, copy } = args;
+  let next = args.answers;
+  if (next._retrievedAt) return { answers: next, note: null };
+
+  const street = next.streetAddress?.trim();
+  if (!street) return { answers: next, note: null };
+  if (!next.city?.trim() && !next.postalCode?.trim()) {
+    return { answers: next, note: null };
+  }
+
+  try {
+    const res = await fetch("/api/property-lookup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        streetAddress: street,
+        city: next.city || "",
+        postalCode: next.postalCode || "",
+        locale,
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    const facts = (data?.facts || null) as PropertyFacts | null;
+    const via = data?.via as string | undefined;
+
+    // Mark attempted so we never re-hit the API in this conversation
+    if (!next._retrievedAt) {
+      next = { ...next, _retrievedAt: new Date().toISOString() };
+    }
+
+    if (!res.ok || via === "skipped" || via === "failed") {
+      const applied = applyPropertyFactsToAnswers(next, facts);
+      return { answers: applied.answers, note: null };
+    }
+
+    const applied = applyPropertyFactsToAnswers(next, facts);
+    next = applied.answers;
+
+    const note = formatRetrievedNote({
+      locale,
+      filledIds: applied.filledIds,
+      labels: fieldLabelsForLocale(locale),
+      template: copy.propertyLookupFound,
+      emptyTemplate: copy.propertyLookupNone,
+    });
+    return { answers: next, note };
+  } catch {
+    if (!next._retrievedAt) {
+      next = { ...next, _retrievedAt: new Date().toISOString() };
+    }
+    return { answers: next, note: null };
+  }
 }
 
 type Phase = "gate" | "inputMode" | "describe" | "flow";
@@ -530,6 +608,24 @@ export function ConversationFlow({
       }
     }
 
+    // Fix 2: public property lookup once address + city/postal are known
+    if (leadType === "seller") {
+      const looked = await enrichAnswersFromPropertyLookup({
+        answers: nextAnswers,
+        locale,
+        copy,
+      });
+      nextAnswers = looked.answers;
+      if (looked.note) {
+        followUp.push({
+          from: "ai-note",
+          text: looked.note,
+          stepId: "propertyNarrative",
+          at: now(),
+        });
+      }
+    }
+
     // Count property fields captured (ignore meta / contact / skips)
     const meta = new Set([
       "locale",
@@ -560,13 +656,7 @@ export function ConversationFlow({
       leadType === "buyer"
         ? visibleBuyerSteps(nextAnswers, locale)
         : visibleSellerSteps(nextAnswers, locale);
-    const nextIdx = nextSteps.findIndex((s) => {
-      if (s.id === "addressConfirm") {
-        return nextAnswers._needsAddressConfirm === "1" && !nextAnswers.city;
-      }
-      const v = nextAnswers[s.id];
-      return v === undefined || v === "";
-    });
+    const nextIdx = findNextUnansweredStepIndex(nextSteps, nextAnswers);
     const isLast = nextIdx < 0;
     const next = isLast ? nextSteps.length : nextIdx;
 
@@ -583,6 +673,17 @@ export function ConversationFlow({
         text: copy.guidedHint,
         at: now(),
       });
+      if (nq.section && nq.section !== "Property") {
+        followUp.push({
+          from: "ai-note",
+          text: copy.sectionNext.replace(
+            "{section}",
+            sellerSectionLabel(nq.section, locale)
+          ),
+          stepId: nq.id,
+          at: now(),
+        });
+      }
       followUp.push({
         from: "ai",
         text: resolveStepAsk(nq, nextAnswers, locale),
@@ -822,6 +923,12 @@ export function ConversationFlow({
           ) {
             nextAnswers.livingAreaUnit = extracted.livingAreaUnit;
           }
+          // Skip optional fishing after a rich free-text turn
+          nextAnswers = applyRichAnswerOptionalSkip(
+            rawValue,
+            nextAnswers,
+            openSteps.map(toExtractableStep)
+          );
           if (extraCount > 0 && typeof data.note === "string" && data.note) {
             followUp.push({
               from: "ai-note",
@@ -846,6 +953,24 @@ export function ConversationFlow({
       if (again.unit) nextAnswers.livingAreaUnit = again.unit;
     }
 
+    // Fix 2: public property lookup once address + city/postal are known
+    if (leadType === "seller") {
+      const looked = await enrichAnswersFromPropertyLookup({
+        answers: nextAnswers,
+        locale,
+        copy,
+      });
+      nextAnswers = looked.answers;
+      if (looked.note) {
+        followUp.push({
+          from: "ai-note",
+          text: looked.note,
+          stepId: step.id,
+          at: now(),
+        });
+      }
+    }
+
     setAnswers(nextAnswers);
 
     const nextSteps =
@@ -854,15 +979,7 @@ export function ConversationFlow({
         : visibleSellerSteps(nextAnswers, locale);
     // Jump to the first still-unanswered visible step (skips city/postal when
     // already captured from a full address or confirm).
-    const nextIdx = nextSteps.findIndex((s) => {
-      if (s.id === "addressConfirm") {
-        return (
-          nextAnswers._needsAddressConfirm === "1" && !nextAnswers.city
-        );
-      }
-      const v = nextAnswers[s.id];
-      return v === undefined || v === "";
-    });
+    const nextIdx = findNextUnansweredStepIndex(nextSteps, nextAnswers);
     const isLast = nextIdx < 0;
     const next = isLast ? nextSteps.length : nextIdx;
 
@@ -874,6 +991,17 @@ export function ConversationFlow({
       });
     } else {
       const nq = nextSteps[next];
+      if (nq.section && step.section && nq.section !== step.section) {
+        followUp.push({
+          from: "ai-note",
+          text: copy.sectionNext.replace(
+            "{section}",
+            sellerSectionLabel(nq.section, locale)
+          ),
+          stepId: nq.id,
+          at: now(),
+        });
+      }
       followUp.push({
         from: "ai",
         text: resolveStepAsk(nq, nextAnswers, locale),

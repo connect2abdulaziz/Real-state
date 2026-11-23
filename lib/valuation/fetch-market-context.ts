@@ -1,8 +1,13 @@
 import type { PropertyRecord } from "@/lib/types";
+import {
+  VALUATION_PREFERRED_SOURCES,
+  marketBriefHasGeoAndPeriod,
+  marketTypeLabel,
+} from "@/lib/valuation/data-quality";
 
 /**
  * Builds a focused web-search query for neighbourhood / city market context.
- * Prefer city + neighbourhood cues from the address over vague province-wide asks.
+ * Prefer city + neighbourhood cues; keep property type family distinct.
  */
 export function buildMarketSearchQuery(property: PropertyRecord): string {
   const details = (property.details || {}) as Record<string, unknown>;
@@ -12,7 +17,7 @@ export function buildMarketSearchQuery(property: PropertyRecord): string {
   const postal =
     (typeof details.postalCode === "string" && details.postalCode.trim()) ||
     extractPostalFromAddress(property.address);
-  const type = property.property_type || "house";
+  const typeLabel = marketTypeLabel(property.property_type);
   const location =
     [city, postal ? `postal ${postal}` : null, "Quebec", "Canada"]
       .filter(Boolean)
@@ -20,18 +25,21 @@ export function buildMarketSearchQuery(property: PropertyRecord): string {
     property.address ||
     "Montreal, Quebec";
 
+  const preferred = VALUATION_PREFERRED_SOURCES.join(", ");
+
   return [
-    `Current average selling price and recent market data for ${type} properties in ${location}.`,
-    "Prefer recent Canadian / Quebec sources (HonestDoor, Centris summaries, realtor.ca, local market reports).",
-    "Include neighbourhood average if available, and note the date of the figures.",
-    "Reply with a short factual market brief (numbers in CAD) and cite source names/URLs.",
+    `Average / median sold price for ${typeLabel} properties in ${location}.`,
+    `Do NOT mix with other property types (e.g. do not use condo stats for a single-family, or vice versa).`,
+    `Prefer these sources first: ${preferred}.`,
+    `Every figure must state the geography (neighbourhood/city) AND the time period (month/quarter/year).`,
+    `If only city-wide or older data exists, say so and flag uncertainty — do not invent prices.`,
+    `Reply with a short factual market brief (numbers in CAD).`,
   ].join(" ");
 }
 
 function extractCityFromAddress(address: string | null): string | null {
   if (!address) return null;
   const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
-  // "street, City, J7B 1X9" or "street, City"
   if (parts.length >= 2) {
     const candidate = parts[1].replace(/\b[A-Za-z]\d[A-Za-z].*$/, "").trim();
     return candidate || parts[1];
@@ -51,6 +59,8 @@ export type MarketContextResult = {
   query: string;
   via: "web_search" | "skipped" | "failed";
   sources?: string[];
+  /** Heuristic: brief appears to include place + period for figures. */
+  hasGeoPeriod?: boolean;
 };
 
 function extractOutputText(payload: unknown): string {
@@ -118,15 +128,18 @@ export async function fetchMarketContext(
       text: "",
       query: "",
       via: "skipped",
+      hasGeoPeriod: false,
     };
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return { text: "", query: "", via: "failed" };
+    return { text: "", query: "", via: "failed", hasGeoPeriod: false };
   }
 
   const query = buildMarketSearchQuery(property);
+  const typeLabel = marketTypeLabel(property.property_type);
+  const preferred = VALUATION_PREFERRED_SOURCES.join(", ");
   const model =
     process.env.OPENAI_MARKET_MODEL ||
     process.env.OPENAI_VALUATION_MODEL ||
@@ -144,13 +157,22 @@ export async function fetchMarketContext(
         tools: [{ type: "web_search" }],
         tool_choice: "auto",
         input: `You are a Canadian residential market researcher for Estate Valora (Quebec focus).
-Use web search to find recent average sale prices / market reports for the requested area.
+Use web_search to find recent average/median sale prices for the SAME property type only: ${typeLabel}.
+
+Preferred sources (search these first): ${preferred}.
+
+Rules:
+- Every price figure MUST name geography (neighbourhood and/or city) AND time period (month, quarter, or year).
+- Never mix property types or reporting periods without saying so.
+- If neighbourhood data is missing, use city-level and mark it as city-wide / lower confidence.
+- If data is thin or conflicting, say so clearly — do not invent MLS listings or fake sold prices.
+- Numbers in CAD.
+
 Return a concise market brief in English:
-- Neighbourhood or city average sale price for the property type (CAD)
-- Date / period of the figures if available
-- 2–4 short bullets of market context
-- Source names and URLs
-Do not invent MLS listing addresses or fake sold comps. If data is thin, say so clearly.
+1) Headline average/median for ${typeLabel} with place + period
+2) 2–4 short context bullets
+3) Uncertainty notes if any
+4) Source names (URLs optional)
 
 Research request:
 ${query}`,
@@ -164,13 +186,13 @@ ${query}`,
         res.status,
         JSON.stringify(payload)?.slice(0, 500)
       );
-      return { text: "", query, via: "failed" };
+      return { text: "", query, via: "failed", hasGeoPeriod: false };
     }
 
     const text = extractOutputText(payload);
     if (!text) {
       console.error("Market web search returned empty text");
-      return { text: "", query, via: "failed" };
+      return { text: "", query, via: "failed", hasGeoPeriod: false };
     }
 
     const sources = extractSources(payload);
@@ -178,15 +200,17 @@ ${query}`,
       sources.length > 0
         ? `${text}\n\nSources:\n${sources.map((u) => `- ${u}`).join("\n")}`
         : text;
+    const hasGeoPeriod = marketBriefHasGeoAndPeriod(withSources);
 
     return {
       text: withSources,
       query,
       via: "web_search",
       sources,
+      hasGeoPeriod,
     };
   } catch (err) {
     console.error("Market web search error:", err);
-    return { text: "", query, via: "failed" };
+    return { text: "", query, via: "failed", hasGeoPeriod: false };
   }
 }

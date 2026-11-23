@@ -588,6 +588,7 @@ export const FIELD_LABELS: Record<string, string> = {
   poolType: "Pool type",
   outdoorFeatures: "Outdoor features",
   numberOfFloors: "Levels",
+  municipalAssessment: "Municipal assessment",
   hasRenovations: "Renovations",
   renovationTypes: "Renovation types",
   renovationDates: "Renovation dates",
