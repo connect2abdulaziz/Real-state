@@ -101,9 +101,9 @@ export async function answerWithWebSearch(args: {
   const historyBlock =
     args.history.length === 0
       ? ""
-      : `\nRecent conversation:\n${args.history
+      : `\nRecent conversation (MUST use for follow-ups — resolve "that", "there", "it", "the average you said", "compare", "and for condos" against these turns; do not pretend you lack prior context):\n${args.history
           .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
-          .join("\n")}\n`;
+          .join("\n\n")}\n`;
 
   const system =
     args.locale === "fr"
@@ -127,6 +127,7 @@ Contenu et recherche:
 - Si des listings Estate Valora pertinents sont fournis, tu peux t'en inspirer en silence; ne les présente pas comme "références".
 - Si aucun comparable PDF n'est utile: NE LE DIS PAS. Donne simplement la réponse marché. Ne mentionne jamais "PDF", "extraits", "knowledge base", "comps manquants" ou "non fourni".
 - Distingue moyenne de quartier vs estimation d'une seule propriété.
+- Mémoire de conversation: si "Recent conversation" est fourni, traite les suivis (ça / là / compare / et pour les condos) comme la suite du même fil — réutilise le quartier et les chiffres déjà donnés.
 - N'invente pas de prix. Tu peux indiquer une période (ex. "début 2026") sans citer de site.
 - Aperçu préliminaire, sous réserve de révision par Ashkan Shamloo.
 - Réponds en français (Québec).`
@@ -150,6 +151,7 @@ Content and search:
 - If relevant Estate Valora listings are provided, you may use them silently; do not present them as "references".
 - If no PDF comps are useful: DO NOT say so. Just give the market answer. Never mention "PDF", "excerpts", "knowledge base", "no comps", or "not provided".
 - Distinguish neighbourhood average vs a single-property estimate.
+- Conversation memory: when "Recent conversation" is present, treat follow-ups (that / there / compare / and for condos) as the same thread — reuse the neighbourhood and figures already given; do not answer as if the prior turn never happened.
 - Do not invent prices. You may mention a time period (e.g. "early 2026") without naming a site.
 - Preliminary insight, subject to review by Ashkan Shamloo.
 - Reply in English.`;
@@ -162,12 +164,13 @@ Content and search:
 Internal reference material (use silently if helpful; never tell the user it was missing):
 ${args.compsContext}
 ${historyBlock}
-User question:
+Latest user message:
 ${args.message}
 
-If they ask for an average / market price in a neighbourhood (e.g. Saint-Léonard, Fontainebleau, Blainville), run web_search targeting ${preferredSources} for that neighbourhood first, then lead with that average in plain text.
-
-If they describe a specific home (address and features), search those same preferred sources for neighbourhood single-family stats, then give a cautious preliminary CAD range only when the web figures support it. Keep it concise and user-friendly.`;
+Instructions for this turn:
+- If this is a follow-up to Recent conversation, answer in that context first (same area / numbers). Only web_search when you need fresh or compared figures.
+- If they ask for an average / market price in a neighbourhood (e.g. Saint-Léonard, Fontainebleau, Blainville), run web_search targeting ${preferredSources} for that neighbourhood first, then lead with that average in plain text.
+- If they describe a specific home (address and features), search those same preferred sources for neighbourhood single-family stats, then give a cautious preliminary CAD range only when the web figures support it. Keep it concise and user-friendly.`;
 
   const models = [...new Set([model, "gpt-4o"].filter(Boolean))];
 

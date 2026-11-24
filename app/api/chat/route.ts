@@ -14,7 +14,10 @@ import {
 } from "@/lib/rag/web-search";
 import { sanitizeChatReply } from "@/lib/rag/sanitize-reply";
 
-const MAX_HISTORY = 16;
+/** Keep enough turns so follow-ups ("that area", "compare to…") still resolve. */
+const MAX_HISTORY = 24;
+/** Cap each turn so the web_search prompt stays within context. */
+const MAX_TURN_CHARS = 1200;
 
 function now() {
   return new Date().toISOString();
@@ -128,12 +131,20 @@ export async function POST(req: Request) {
     const history = transcript
       .filter((m) => m.from === "user" || m.from === "ai")
       .slice(-MAX_HISTORY)
-      .map((m) => ({
-        role: (m.from === "user" ? "user" : "assistant") as
-          | "user"
-          | "assistant",
-        content: m.text,
-      }));
+      .map((m) => {
+        const raw = (m.text || "").trim();
+        const content =
+          raw.length > MAX_TURN_CHARS
+            ? `${raw.slice(0, MAX_TURN_CHARS)}…`
+            : raw;
+        return {
+          role: (m.from === "user" ? "user" : "assistant") as
+            | "user"
+            | "assistant",
+          content,
+        };
+      })
+      .filter((m) => m.content.length > 0);
 
     // 2) Option 2: Responses API + web_search (ChatGPT-like market averages)
     const web = await answerWithWebSearch({

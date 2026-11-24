@@ -29,6 +29,8 @@ export function ChatClient({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  /** Keep latest session id for send (avoids losing history when state lags). */
+  const sessionIdRef = useRef<string | null>(null);
 
   const copy =
     locale === "fr"
@@ -76,7 +78,10 @@ export function ChatClient({
   useEffect(() => {
     try {
       const stored = localStorage.getItem(SESSION_KEY);
-      if (stored) setSessionId(stored);
+      if (stored) {
+        sessionIdRef.current = stored;
+        setSessionId(stored);
+      }
     } catch {
       /* private mode */
     }
@@ -88,7 +93,21 @@ export function ChatClient({
     (async () => {
       try {
         const res = await fetch(`/api/chat?sessionId=${sessionId}`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          // Stale / deleted session — start fresh next send
+          if (res.status === 404) {
+            try {
+              localStorage.removeItem(SESSION_KEY);
+            } catch {
+              /* */
+            }
+            if (!cancelled) {
+              sessionIdRef.current = null;
+              setSessionId(null);
+            }
+          }
+          return;
+        }
         const data = await res.json();
         const transcript = data.session?.transcript;
         if (!Array.isArray(transcript) || cancelled) return;
@@ -132,6 +151,7 @@ export function ChatClient({
     } catch {
       /* */
     }
+    sessionIdRef.current = null;
     setSessionId(null);
     setMessages([]);
     setError(null);
@@ -159,7 +179,8 @@ export function ChatClient({
         body: JSON.stringify({
           message: text,
           locale,
-          sessionId,
+          // Ref is always current — React state can lag one send behind
+          sessionId: sessionIdRef.current,
         }),
       });
       const data = await res.json();
@@ -167,6 +188,7 @@ export function ChatClient({
         throw new Error(data.error || "Chat failed");
       }
       if (data.sessionId) {
+        sessionIdRef.current = data.sessionId;
         setSessionId(data.sessionId);
         try {
           localStorage.setItem(SESSION_KEY, data.sessionId);
