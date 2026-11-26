@@ -317,9 +317,6 @@ export function ChatClient({
                     ))}
                   </div>
                 </div>
-                <p className="text-[11px] text-foreground-subtle max-w-sm">
-                  {copy.disclaimer}
-                </p>
               </div>
             )}
 
