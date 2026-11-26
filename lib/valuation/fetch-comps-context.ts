@@ -19,6 +19,7 @@ export type CompsContextResult = {
 };
 
 export function isValuationRagCompsEnabled(): boolean {
+  // Default ON when env unset
   if (process.env.VALUATION_RAG_COMPS === "false") return false;
   if (process.env.VALUATION_RAG_COMPS === "true") return true;
   return true;

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { resolveValuationModelFromEnv } from "@/lib/openai/defaults";
 
 /**
  * Server-only OpenAI client. Only import from server code (app/api/**,
@@ -12,4 +13,4 @@ export function createOpenAIClient() {
   return new OpenAI({ apiKey });
 }
 
-export const VALUATION_MODEL = process.env.OPENAI_VALUATION_MODEL || "gpt-4o";
+export const VALUATION_MODEL = resolveValuationModelFromEnv();

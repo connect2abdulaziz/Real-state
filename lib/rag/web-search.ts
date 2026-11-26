@@ -3,6 +3,11 @@
  * so neighbourhood averages (HonestDoor, etc.) can be found like ChatGPT.
  */
 
+import {
+  resolveChatModelFromEnv,
+  resolveChatSearchModeFromEnv,
+} from "@/lib/openai/defaults";
+
 export type ChatWebSearchResult = {
   text: string;
   via: "web_search" | "skipped" | "failed";
@@ -62,29 +67,25 @@ function extractSources(payload: unknown): string[] {
 }
 
 export function isChatWebSearchEnabled(): boolean {
+  // Explicit chat flag, else valuation flag, else ON (code default)
   if (process.env.CHAT_WEB_SEARCH === "false") return false;
   if (process.env.CHAT_WEB_SEARCH === "true") return true;
-  // Inherit valuation flag when chat flag unset
-  return process.env.VALUATION_WEB_SEARCH !== "false";
+  if (process.env.VALUATION_WEB_SEARCH === "false") return false;
+  if (process.env.VALUATION_WEB_SEARCH === "true") return true;
+  return true;
 }
 
 /**
- * open = ChatGPT-style: search the whole web (default).
+ * open = ChatGPT-style: search the whole web (default when env unset).
  * preferred = bias toward client portals (HonestDoor, Centris, etc.).
  */
 export function resolveChatSearchMode(): "open" | "preferred" {
-  const raw = (process.env.CHAT_SEARCH_MODE || "open").toLowerCase().trim();
-  return raw === "preferred" ? "preferred" : "open";
+  return resolveChatSearchModeFromEnv();
 }
 
-/** Best generally available chat + tools model (override with OPENAI_CHAT_MODEL). */
+/** Chat / web_search model — falls back to code default if Vercel env missing. */
 export function resolveChatModel(): string {
-  return (
-    process.env.OPENAI_CHAT_MODEL ||
-    process.env.OPENAI_MARKET_MODEL ||
-    process.env.OPENAI_VALUATION_MODEL ||
-    "gpt-6.1-terra"
-  );
+  return resolveChatModelFromEnv();
 }
 
 const PREFERRED_PORTALS =

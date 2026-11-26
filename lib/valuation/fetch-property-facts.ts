@@ -3,6 +3,8 @@
  * Prefer Quebec / Montréal assessment-roll style sources.
  */
 
+import { resolveMarketModelFromEnv } from "@/lib/openai/defaults";
+
 export type PropertyFacts = {
   propertyType?: string;
   yearBuilt?: string;
@@ -202,10 +204,11 @@ function normalizeFacts(obj: Record<string, unknown> | null): PropertyFacts | nu
 }
 
 export function isPropertyLookupEnabled(): boolean {
+  // Default ON when env unset (works on Vercel without new keys)
   if (process.env.PROPERTY_LOOKUP_WEB_SEARCH === "false") return false;
   if (process.env.PROPERTY_LOOKUP_WEB_SEARCH === "true") return true;
-  // Default on when valuation web search is not explicitly off
-  return process.env.VALUATION_WEB_SEARCH !== "false";
+  if (process.env.VALUATION_WEB_SEARCH === "false") return false;
+  return true;
 }
 
 export function buildPropertyLookupQuery(args: {
@@ -242,11 +245,7 @@ export async function fetchPropertyFacts(args: {
     return { facts: null, via: "failed", query };
   }
 
-  const model =
-    process.env.OPENAI_MARKET_MODEL ||
-    process.env.OPENAI_CHAT_MODEL ||
-    process.env.OPENAI_VALUATION_MODEL ||
-    "gpt-4o";
+  const model = resolveMarketModelFromEnv();
 
   const input = `You are a Quebec (Canada) property records researcher for Estate Valora.
 Use web_search to find PUBLIC facts for this civic address only:

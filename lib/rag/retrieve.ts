@@ -1,4 +1,5 @@
 import { createOpenAIClient } from "@/lib/openai/client";
+import { resolveChatModelFromEnv } from "@/lib/openai/defaults";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   inferQueryFilters,
@@ -9,11 +10,7 @@ import {
 export const EMBEDDING_MODEL =
   process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
 
-export const CHAT_MODEL =
-  process.env.OPENAI_CHAT_MODEL ||
-  process.env.OPENAI_MARKET_MODEL ||
-  process.env.OPENAI_VALUATION_MODEL ||
-  "gpt-6.1-terra";
+export const CHAT_MODEL = resolveChatModelFromEnv();
 
 export type RetrievedChunk = {
   id: string;

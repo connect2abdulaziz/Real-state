@@ -1,4 +1,5 @@
 import type { PropertyRecord } from "@/lib/types";
+import { resolveMarketModelFromEnv } from "@/lib/openai/defaults";
 import {
   VALUATION_PREFERRED_SOURCES,
   marketBriefHasGeoAndPeriod,
@@ -122,6 +123,7 @@ function extractSources(payload: unknown): string[] {
 export async function fetchMarketContext(
   property: PropertyRecord
 ): Promise<MarketContextResult> {
+  // Default ON when env unset (Vercel may not have the key yet)
   const enabled = process.env.VALUATION_WEB_SEARCH !== "false";
   if (!enabled) {
     return {
@@ -140,10 +142,7 @@ export async function fetchMarketContext(
   const query = buildMarketSearchQuery(property);
   const typeLabel = marketTypeLabel(property.property_type);
   const preferred = VALUATION_PREFERRED_SOURCES.join(", ");
-  const model =
-    process.env.OPENAI_MARKET_MODEL ||
-    process.env.OPENAI_VALUATION_MODEL ||
-    "gpt-4o";
+  const model = resolveMarketModelFromEnv();
 
   try {
     const res = await fetch("https://api.openai.com/v1/responses", {
