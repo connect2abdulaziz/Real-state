@@ -248,9 +248,7 @@ export function ChatClient({
                   <Sparkles size={14} className="text-electric shrink-0" />
                   {copy.title}
                 </p>
-                <p className="text-[12px] text-foreground-muted truncate">
-                  {copy.subtitle}
-                </p>
+                
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
