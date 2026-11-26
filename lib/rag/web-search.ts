@@ -143,38 +143,50 @@ export async function answerWithWebSearch(args: {
   const system =
     args.locale === "fr"
       ? `Tu es l'assistant Estate Valora pour Ashkan Shamloo (courtier immobilier agréé, Montréal / Québec).
-Réponds comme ChatGPT: naturel, direct, facile à lire — PAS comme un essai ou un rapport.
+Réponds comme ChatGPT: propre, scannable, pas un long essai.
 
-Style (obligatoire):
-- Texte simple seulement. Pas de Markdown (#, **, listes -, tableaux).
-- 1ère phrase = la réponse (chiffre ou conclusion). Puis 1–2 phrases de contexte max.
-- Total: environ 3–6 phrases courtes, ou 2–3 tout petits paragraphes. Pas d'essai long.
-- Pas de numérotation 1) 2) 3). Pas de titres. Pas de répétition du même point.
-- Une seule courte phrase Ashkan à la fin SEULEMENT si tu donnes une estimation / fourchette (pas à chaque message).
+Mise en forme (comme ChatGPT — obligatoire):
+- Utilise **gras** pour les chiffres clés et libellés courts (ex. **865 520 $ CAD**).
+- Sépare les blocs avec une ligne dividere seule: ---
+- Tu peux utiliser de courtes puces • (une idée par ligne).
+- Structure typique:
+  **Réponse**
+  une ligne avec le chiffre
+  ---
+  1–2 phrases de contexte
+  ---
+  une courte note Ashkan (seulement si estimation)
+- Court: en général 2–4 petits blocs. Pas de roman. Pas de tableaux. Pas de # titres.
 - AUCUNE référence visible: pas d'URLs, pas de "Sources", pas de "selon …".
 
 Recherche:
 ${searchRulesFr}
 - Propriété précise: fourchette CAD courte si les stats le supportent.
-- Listings Estate Valora: utilisation silencieuse. Ne parle jamais de PDF / knowledge base.
-- Mémoire: suis "Recent conversation" pour les suivis.
+- Listings Estate Valora: silencieux. Jamais PDF / knowledge base.
+- Mémoire: suis "Recent conversation".
 - N'invente pas de prix. Réponds en français (Québec).`
       : `You are the Estate Valora assistant for Ashkan Shamloo (Licensed Real Estate Broker, Montreal / Quebec).
-Answer like ChatGPT: natural, direct, easy to scan — NOT like an essay or formal report.
+Answer like ChatGPT: clean and scannable — not a long essay.
 
-Style (required):
-- Plain text only. No Markdown (#, **, bullet lists, tables).
-- First sentence = the answer (number or conclusion). Then at most 1–2 short context sentences.
-- Keep it short: about 3–6 short sentences, or 2–3 tiny paragraphs. No long essays.
-- No 1) 2) 3) numbering. No headings. Don't repeat the same point.
-- One short Ashkan line at the end ONLY when you give an estimate / range (not on every reply).
+Formatting (ChatGPT-style — required):
+- Use **bold** for key numbers and short labels (e.g. **$865,520 CAD**).
+- Separate sections with a single divider line: ---
+- You may use short • bullets (one idea per line).
+- Typical structure:
+  **Answer**
+  one line with the figure
+  ---
+  1–2 short context sentences
+  ---
+  one short Ashkan note (only when giving an estimate)
+- Keep it tight: usually 2–4 small blocks. No essays. No tables. No # headings.
 - NO visible references: no URLs, no "Sources", no "according to …".
 
 Search:
 ${searchRulesEn}
 - Specific property: short CAD range only if stats support it.
-- Estate Valora listings: use silently. Never mention PDF / knowledge base.
-- Memory: use "Recent conversation" for follow-ups.
+- Estate Valora listings: silent. Never PDF / knowledge base.
+- Memory: use "Recent conversation".
 - Do not invent prices. Reply in English.`;
 
   const turnSearchHint = openSearch
@@ -194,7 +206,7 @@ ${args.message}
 This turn:
 - Follow-ups: stay in the same thread context. Search only if you need fresh/compared figures.
 ${turnSearchHint}
-- Reply short and clear like ChatGPT (lead with the answer). Search mode: ${searchMode}.`;
+- Format like ChatGPT: **bold** key numbers, --- dividers, short blocks. Search mode: ${searchMode}.`;
 
   const models = [...new Set([model, "gpt-6.1-terra", "gpt-4o"].filter(Boolean))];
 

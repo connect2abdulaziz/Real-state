@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Home, Send, Loader2, Sparkles } from "lucide-react";
+import { ChatRichText } from "@/components/chat/ChatRichText";
 
 const SESSION_KEY = "estate-valora-chat-session";
 
@@ -332,13 +333,17 @@ export function ChatClient({
                 }`}
               >
                 <div
-                  className={`max-w-[min(95%,40rem)] rounded-md px-3.5 sm:px-4 py-2.5 text-[14px] sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words ${
+                  className={`max-w-[min(95%,40rem)] rounded-md px-3.5 sm:px-4 py-2.5 text-[14px] sm:text-[15px] leading-relaxed break-words ${
                     m.role === "user"
-                      ? "rounded-tr-sm bg-electric/20 border border-electric/30 text-foreground"
+                      ? "rounded-tr-sm bg-electric/20 border border-electric/30 text-foreground whitespace-pre-wrap"
                       : "rounded-tl-sm bg-surface-soft border border-white/10 text-foreground"
                   }`}
                 >
-                  {m.text}
+                  {m.role === "assistant" ? (
+                    <ChatRichText text={m.text} />
+                  ) : (
+                    m.text
+                  )}
                 </div>
               </div>
             ))}
