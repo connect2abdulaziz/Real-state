@@ -157,7 +157,7 @@ Mise en forme (comme ChatGPT — obligatoire):
   ---
   une courte note Ashkan (seulement si estimation)
 - Court: en général 2–4 petits blocs. Pas de roman. Pas de tableaux. Pas de # titres.
-- AUCUNE référence visible: pas d'URLs, pas de "Sources", pas de "selon …".
+- AUCUNE référence visible: pas d'URLs, pas de liste Sources, pas de noms de sites (HonestDoor, Centris, realtor.ca, etc.), pas de "selon …" / "d'après …". Les chiffres seulement — jamais la provenance.
 
 Recherche:
 ${searchRulesFr}
@@ -180,7 +180,7 @@ Formatting (ChatGPT-style — required):
   ---
   one short Ashkan note (only when giving an estimate)
 - Keep it tight: usually 2–4 small blocks. No essays. No tables. No # headings.
-- NO visible references: no URLs, no "Sources", no "according to …".
+- NO visible references: no URLs, no Sources list, no website names (HonestDoor, Centris, realtor.ca, etc.), no "according to …" / "based on …". Numbers only — never name where they came from.
 
 Search:
 ${searchRulesEn}
