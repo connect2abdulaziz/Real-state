@@ -296,9 +296,6 @@ export function ChatClient({
           >
             {messages.length === 0 && (
               <div className="h-full min-h-[240px] flex flex-col items-center justify-center text-center gap-4 px-4">
-                <p className="text-[15px] text-foreground-muted max-w-md leading-relaxed">
-                  {copy.empty}
-                </p>
                 <div className="w-full max-w-lg space-y-2">
                   <p className="text-[11px] uppercase tracking-[0.1em] text-foreground-subtle">
                     {copy.try}
