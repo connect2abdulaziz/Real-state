@@ -121,30 +121,44 @@ export async function answerWithWebSearch(args: {
   const searchMode = resolveChatSearchMode();
   const openSearch = searchMode === "open";
 
+  const noSourcesRuleFr = `RÈGLE ABSOLUE — JAMAIS de sources dans la réponse:
+- N'écris AUCUN nom de site, domaine, URL, courtier-web, portail (ex. HonestDoor, Centris, Remax, *.ca, *.com).
+- PAS de parenthèses du type (loaamanseur-remax.ca) ou (centris.ca).
+- PAS de "selon…", "d'après…", "basé sur…", "Sources:", "Références:".
+- Cherche sur le web en silence; donne seulement les chiffres + contexte + période/lieu si connu.`;
+
+  const noSourcesRuleEn = `ABSOLUTE RULE — NEVER show sources in the reply:
+- Do NOT write any website name, domain, URL, broker site, or portal (e.g. HonestDoor, Centris, Remax, *.ca, *.com).
+- NO parentheses like (loaamanseur-remax.ca) or (centris.ca).
+- NO "according to…", "based on…", "per…", "Sources:", "References:".
+- Search the web silently; output only numbers + context + place/period when known.`;
+
   const searchRulesFr = openSearch
     ? `- Utilise web_search librement sur tout le web public (comme ChatGPT), pour toute question utile — marché immobilier, quartier, tendances, contexte.
-- Tu n'es PAS limité à une liste de sites. Cherche ce qui est le plus récent et crédible.
-- Pour les prix: privilégie des chiffres avec lieu + période; si les sources divergent, dis-le brièvement et mène avec la meilleure estimation de quartier.
+- Tu n'es PAS limité à une liste de sites. Cherche ce qui est le plus récent et crédible — mais NE NOMME JAMAIS les sites dans la réponse.
+- Pour les prix: privilégie des chiffres avec lieu + période; si les sources divergent, dis-le brièvement SANS nommer de site.
 - Fais plusieurs recherches ciblées si utile (quartier, type de propriété, année).`
     : `- Utilise web_search pour moyennes / médianes de quartier et contexte ville.
-- Sources préférées (cherche-les d'abord, en silence): ${PREFERRED_PORTALS}. Préfère les stats de portails / rapports de quartier aux blogues SEO.
+- En interne seulement, privilégie: ${PREFERRED_PORTALS}. NE les cite JAMAIS dans la réponse utilisateur.
 - Les requêtes doivent inclure quartier + ville + "prix moyen" / "médiane vendue" / "unifamiliale" et l'année si pertinent.
-- S'il y a plusieurs chiffres, mène avec la moyenne/médiane du quartier d'une source préférée; la moyenne Montréal n'est qu'un contexte secondaire.`;
+- S'il y a plusieurs chiffres, mène avec la meilleure moyenne/médiane de quartier; Montréal en secondaire — sans nommer de site.`;
 
   const searchRulesEn = openSearch
     ? `- Use web_search freely across the public web (ChatGPT-style) for any useful question — market, neighbourhood, trends, context.
-- You are NOT limited to a fixed list of websites. Prefer the most recent, credible results.
-- For prices: prefer figures that name place + time period; if sources disagree, say so briefly and lead with the best neighbourhood estimate.
+- You are NOT limited to a fixed list of websites. Prefer recent credible results — but NEVER name those sites in the user-facing reply.
+- For prices: prefer figures that name place + time period; if figures disagree, say so briefly WITHOUT naming a site.
 - Run multiple focused searches when useful (neighbourhood, property type, year).`
     : `- Use web_search for neighbourhood averages / medians and city context.
-- Preferred sources (search these first, silently): ${PREFERRED_PORTALS}. Prefer portal / neighbourhood reports over random blogs or SEO articles.
+- Internally prefer: ${PREFERRED_PORTALS}. NEVER cite them in the user-facing reply.
 - Search queries should include neighbourhood + city + "average home price" / "median sold" / "single-family" and the year when relevant.
-- If several figures appear, lead with the best neighbourhood-specific average/median from a preferred portal; Montreal city-wide only as secondary context.`;
+- If several figures appear, lead with the best neighbourhood average/median; Montreal secondary — without naming any site.`;
 
   const system =
     args.locale === "fr"
       ? `Tu es l'assistant Estate Valora pour Ashkan Shamloo (courtier immobilier agréé, Montréal / Québec).
 Réponds comme ChatGPT: propre, scannable, pas un long essai.
+
+${noSourcesRuleFr}
 
 Mise en forme (comme ChatGPT — obligatoire):
 - Utilise **gras** pour les chiffres clés et libellés courts (ex. **865 520 $ CAD**).
@@ -158,7 +172,6 @@ Mise en forme (comme ChatGPT — obligatoire):
   ---
   une courte note Ashkan (seulement si estimation)
 - Court: en général 2–4 petits blocs. Pas de roman. Pas de tableaux. Pas de # titres.
-- AUCUNE référence visible: pas d'URLs, pas de liste Sources, pas de noms de sites (HonestDoor, Centris, realtor.ca, etc.), pas de "selon …" / "d'après …". Les chiffres seulement — jamais la provenance.
 
 Recherche:
 ${searchRulesFr}
@@ -168,6 +181,8 @@ ${searchRulesFr}
 - N'invente pas de prix. Réponds en français (Québec).`
       : `You are the Estate Valora assistant for Ashkan Shamloo (Licensed Real Estate Broker, Montreal / Quebec).
 Answer like ChatGPT: clean and scannable — not a long essay.
+
+${noSourcesRuleEn}
 
 Formatting (ChatGPT-style — required):
 - Use **bold** for key numbers and short labels (e.g. **$865,520 CAD**).
@@ -181,7 +196,6 @@ Formatting (ChatGPT-style — required):
   ---
   one short Ashkan note (only when giving an estimate)
 - Keep it tight: usually 2–4 small blocks. No essays. No tables. No # headings.
-- NO visible references: no URLs, no Sources list, no website names (HonestDoor, Centris, realtor.ca, etc.), no "according to …" / "based on …". Numbers only — never name where they came from.
 
 Search:
 ${searchRulesEn}
@@ -193,8 +207,8 @@ ${searchRulesEn}
   const turnSearchHint = openSearch
     ? `- Search the open web as needed. Prefer recent neighbourhood-specific figures for price questions.
 - Specific home → local stats, then a short preliminary CAD range if supported.`
-    : `- Neighbourhood average → web_search targeting ${PREFERRED_PORTALS} first.
-- Specific home → those preferred sources, then a short preliminary CAD range if supported.`;
+    : `- Neighbourhood average → web_search (preferred portals internally only; never name them).
+- Specific home → same, then a short preliminary CAD range if supported.`;
 
   const input = `${system}
 
@@ -207,7 +221,8 @@ ${args.message}
 This turn:
 - Follow-ups: stay in the same thread context. Search only if you need fresh/compared figures.
 ${turnSearchHint}
-- Format like ChatGPT: **bold** key numbers, --- dividers, short blocks. Search mode: ${searchMode}.`;
+- Format like ChatGPT: **bold** key numbers, --- dividers, short blocks. Search mode: ${searchMode}.
+- CRITICAL: Do not include any website name, domain, URL, or "(site.ca)" citation in your reply.`;
 
   const models = [...new Set([model, "gpt-6.1-terra", "gpt-4o"].filter(Boolean))];
 

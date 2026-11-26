@@ -122,8 +122,14 @@ export function sanitizeChatReply(text: string): string {
     ""
   );
 
-  // Parenthetical site mentions: (HonestDoor), (Centris, 2026)
+  // Parenthetical known brands: (HonestDoor), (Centris, 2026)
   t = t.replace(new RegExp(String.raw`\s*\((?:${SITE_NAME})(?:[^)]*)\)`, "gi"), "");
+
+  // ANY parenthetical domain — e.g. (loaamanseur-remax.ca), **(site.com)**
+  t = t.replace(
+    /\*{0,2}\(\s*(?:https?:\/\/)?(?:www\.)?[a-z0-9][a-z0-9.-]*\.[a-z]{2,}(?:\/[^\s)]*)?\s*\)\*{0,2}/gi,
+    ""
+  );
 
   // Bare site brand left as citation fragment: "— HonestDoor." / ", Centris,"
   t = t.replace(
@@ -134,12 +140,25 @@ export function sanitizeChatReply(text: string): string {
     " "
   );
 
-  // Domains / URLs
+  // Known portal domains
   t = t.replace(new RegExp(SITE_DOMAIN, "gi"), "");
+  // Any URL
   t = t.replace(/\(?https?:\/\/[^\s)]+\)?/gi, "");
   t = t.replace(/\bwww\.[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s)\]>]*)?/gi, "");
+  // Bare domains inline (remax.ca, loaamanseur-remax.ca, etc.) — keep $ amounts intact
+  t = t.replace(
+    /(?<![$€£])\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:ca|com|org|net|io|co|info|biz|qc\.ca|gouv\.qc\.ca)\b(?:\/[^\s)\]>,]*)?/gi,
+    ""
+  );
+
+  // Attribution leftovers: "according to .", "based on ,"
+  t = t.replace(
+    /\b(?:according\s+to|based\s+on|as\s+per|per|via|from|reported\s+by|data\s+from|figures?\s+from|sourced?\s+from|selon|d['’]après)\s*[.,;:]?\s*/gi,
+    ""
+  );
 
   // Cleanup punctuation left by removals
+  t = t.replace(/\*\*\s*\*\*/g, "");
   t = t.replace(/\(\s*\)/g, "");
   t = t.replace(/\s+([,.;:!?])/g, "$1");
   t = t.replace(/([,;]){2,}/g, "$1");
