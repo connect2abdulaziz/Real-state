@@ -5,7 +5,7 @@ import { useSiteContent } from "@/data/content/useSiteContent";
 
 /**
  * Hero offer — conversion hook raised into the upper-middle of the viewport.
- * Primary CTA stays on /valuation (product entry).
+ * Primary CTA goes to /chat (public product entry; /valuation kept unlisted).
  */
 export function HeroContent() {
   const {

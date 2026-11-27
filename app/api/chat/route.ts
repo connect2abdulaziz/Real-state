@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createOpenAIClient } from "@/lib/openai/client";
-import type { TranscriptMessage } from "@/lib/types";
+import type { Answers, TranscriptMessage } from "@/lib/types";
 import {
   buildChatSystemPrompt,
   formatRetrievedContext,
@@ -13,6 +13,13 @@ import {
   resolveChatModel,
 } from "@/lib/rag/web-search";
 import { sanitizeChatReply } from "@/lib/rag/sanitize-reply";
+import { extractAnswersFromMessage } from "@/lib/conversation/extract-answers";
+import {
+  buildChatIntakeState,
+  detectSellEstimateIntent,
+  getChatExtractableSteps,
+  heuristicChatAddress,
+} from "@/lib/rag/chat-intake";
 
 /** Keep enough turns so follow-ups ("that area", "compare to…") still resolve. */
 const MAX_HISTORY = 24;
@@ -38,6 +45,10 @@ export async function POST(req: Request) {
     const message =
       typeof body.message === "string" ? body.message.trim() : "";
     const locale = body.locale === "fr" ? "fr" : "en";
+    const requestId =
+      typeof body.requestId === "string" && body.requestId.trim()
+        ? body.requestId.trim()
+        : `req-${Date.now()}`;
     let sessionId =
       typeof body.sessionId === "string" && body.sessionId
         ? body.sessionId
@@ -64,7 +75,7 @@ export async function POST(req: Request) {
         .insert({
           status: "in_progress",
           transcript: [],
-          answers: { locale, inputMode: "chat" },
+          answers: { locale, inputMode: "chat", chatRequestId: requestId },
           lead_type: "chat",
           locale,
         })
@@ -77,7 +88,12 @@ export async function POST(req: Request) {
           .insert({
             status: "in_progress",
             transcript: [],
-            answers: { locale, inputMode: "chat", leadType: "chat" },
+            answers: {
+              locale,
+              inputMode: "chat",
+              leadType: "chat",
+              chatRequestId: requestId,
+            },
             locale,
           })
           .select("id")
@@ -109,24 +125,22 @@ export async function POST(req: Request) {
       ? (session.transcript as TranscriptMessage[])
       : [];
 
-    const userMsg: TranscriptMessage = {
-      from: "user",
-      text: message,
-      at: now(),
+    const prevAnswers: Answers = {
+      ...((session.answers as Answers) || {}),
     };
 
-    // 1) RAG comps from client PDFs
-    let chunks: Awaited<ReturnType<typeof retrieveChunks>> = [];
-    try {
-      chunks = await retrieveChunks(message, { matchCount: 8 });
-    } catch (err) {
-      console.warn("[chat] RAG retrieve failed (continuing with web):", err);
-    }
-    const compsContext = formatRetrievedContext(chunks);
-    const compSources: ChatSource[] = uniqueSources(chunks).map((s) => ({
-      ...s,
-      kind: "comp" as const,
-    }));
+    // Claim this turn so a superseded amend does not overwrite transcript later
+    await supabase
+      .from("conversations")
+      .update({
+        answers: {
+          ...prevAnswers,
+          locale,
+          inputMode: "chat",
+          chatRequestId: requestId,
+        },
+      })
+      .eq("id", sessionId);
 
     const history = transcript
       .filter((m) => m.from === "user" || m.from === "ai")
@@ -146,12 +160,81 @@ export async function POST(req: Request) {
       })
       .filter((m) => m.content.length > 0);
 
-    // 2) Option 2: Responses API + web_search (ChatGPT-like market averages)
+    // Extract seller slots into answers (reuse valuation extractor)
+    let mergedAnswers: Answers = { ...prevAnswers };
+    const openSteps = getChatExtractableSteps(mergedAnswers);
+    if (openSteps.length > 0) {
+      try {
+        const { extracted } = await extractAnswersFromMessage({
+          message,
+          locale,
+          openSteps,
+          alreadyAnswered: mergedAnswers,
+        });
+        mergedAnswers = { ...mergedAnswers, ...extracted };
+      } catch (err) {
+        console.warn("[chat] slot extract failed:", err);
+      }
+    }
+    const addrBits = heuristicChatAddress(message, mergedAnswers);
+    mergedAnswers = { ...mergedAnswers, ...addrBits };
+
+    const intakeMode = detectSellEstimateIntent({
+      message,
+      history,
+      answers: mergedAnswers,
+    });
+    if (intakeMode) {
+      mergedAnswers._chatIntake = "1";
+    }
+
+    const intake = buildChatIntakeState({
+      answers: mergedAnswers,
+      locale,
+      intakeMode,
+    });
+
+    const userMsg: TranscriptMessage = {
+      from: "user",
+      text: message,
+      at: now(),
+    };
+
+    // RAG query: prefer address + known facts for comps when in intake
+    const ragQuery =
+      intakeMode && mergedAnswers.streetAddress
+        ? [
+            mergedAnswers.streetAddress,
+            mergedAnswers.city,
+            mergedAnswers.propertyType,
+            mergedAnswers.bedrooms
+              ? `${mergedAnswers.bedrooms} bedrooms`
+              : "",
+            message,
+          ]
+            .filter(Boolean)
+            .join(" ")
+        : message;
+
+    let chunks: Awaited<ReturnType<typeof retrieveChunks>> = [];
+    try {
+      chunks = await retrieveChunks(ragQuery, { matchCount: 8 });
+    } catch (err) {
+      console.warn("[chat] RAG retrieve failed (continuing with web):", err);
+    }
+    const compsContext = formatRetrievedContext(chunks);
+    const compSources: ChatSource[] = uniqueSources(chunks).map((s) => ({
+      ...s,
+      kind: "comp" as const,
+    }));
+
+    // Option 2: Responses API + web_search
     const web = await answerWithWebSearch({
       message,
       locale,
       compsContext,
       history,
+      intake,
     });
 
     let reply = web.text;
@@ -185,10 +268,10 @@ export async function POST(req: Request) {
           model,
           temperature: 0.3,
           messages: [
-            { role: "system", content: buildChatSystemPrompt(locale) },
+            { role: "system", content: buildChatSystemPrompt(locale, intake) },
             {
               role: "system",
-              content: `Reference material (use silently if helpful; never say it was missing):\n\n${compsContext}`,
+              content: `Reference material (use silently if helpful; never say it was missing):\n\n${compsContext}\n\nIntake state:\n${intake.stateBlock}`,
             },
             ...history,
             { role: "user", content: message },
@@ -218,13 +301,38 @@ export async function POST(req: Request) {
       at: now(),
     };
 
-    const nextTranscript = [...transcript, userMsg, aiMsg];
-    const nextAnswers = {
-      ...(session.answers || {}),
+    // If the user amended while we were thinking, a newer request claimed the session
+    const { data: latest } = await supabase
+      .from("conversations")
+      .select("answers, transcript")
+      .eq("id", sessionId)
+      .maybeSingle();
+    const latestAnswers = (latest?.answers as Answers) || {};
+    if (
+      latestAnswers.chatRequestId &&
+      latestAnswers.chatRequestId !== requestId
+    ) {
+      return NextResponse.json({
+        ok: true,
+        sessionId,
+        superseded: true,
+        requestId,
+      });
+    }
+
+    const baseTranscript = Array.isArray(latest?.transcript)
+      ? (latest!.transcript as TranscriptMessage[])
+      : transcript;
+
+    const nextTranscript = [...baseTranscript, userMsg, aiMsg];
+    const nextAnswers: Answers = {
+      ...mergedAnswers,
       locale,
       inputMode: "chat",
+      chatRequestId: requestId,
       lastSources: JSON.stringify(sources),
       lastVia: via,
+      enoughForEstimate: intake.enoughForEstimate ? "1" : "0",
     };
 
     await supabase
@@ -247,6 +355,12 @@ export async function POST(req: Request) {
       via,
       model: resolveChatModel(),
       at: aiMsg.at,
+      requestId,
+      intake: {
+        mode: intake.intakeMode,
+        enoughForEstimate: intake.enoughForEstimate,
+        missing: intake.missingIds.slice(0, 6),
+      },
     });
   } catch (err) {
     console.error("POST /api/chat failed:", err);
@@ -256,7 +370,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
+  const searchParams = new URL(req.url).searchParams;
   const sessionId = searchParams.get("sessionId");
   if (!sessionId) {
     return NextResponse.json({ error: "sessionId required" }, { status: 400 });

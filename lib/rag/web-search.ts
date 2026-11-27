@@ -7,6 +7,10 @@ import {
   resolveChatModelFromEnv,
   resolveChatSearchModeFromEnv,
 } from "@/lib/openai/defaults";
+import {
+  buildChatSystemPromptParts,
+  type ChatIntakeState,
+} from "@/lib/rag/chat-intake";
 
 export type ChatWebSearchResult = {
   text: string;
@@ -100,6 +104,7 @@ export async function answerWithWebSearch(args: {
   locale: "en" | "fr";
   compsContext: string;
   history: Array<{ role: "user" | "assistant"; content: string }>;
+  intake: ChatIntakeState;
 }): Promise<ChatWebSearchResult> {
   if (!isChatWebSearchEnabled()) {
     return { text: "", via: "skipped", sources: [] };
@@ -121,107 +126,28 @@ export async function answerWithWebSearch(args: {
   const searchMode = resolveChatSearchMode();
   const openSearch = searchMode === "open";
 
-  const noSourcesRuleFr = `RÈGLE ABSOLUE — JAMAIS de sources dans la réponse:
-- N'écris AUCUN nom de site, domaine, URL, courtier-web, portail (ex. HonestDoor, Centris, Remax, *.ca, *.com).
-- PAS de parenthèses du type (loaamanseur-remax.ca) ou (centris.ca).
-- PAS de "selon…", "d'après…", "basé sur…", "Sources:", "Références:".
-- Cherche sur le web en silence; donne seulement les chiffres + contexte + période/lieu si connu.`;
-
-  const noSourcesRuleEn = `ABSOLUTE RULE — NEVER show sources in the reply:
-- Do NOT write any website name, domain, URL, broker site, or portal (e.g. HonestDoor, Centris, Remax, *.ca, *.com).
-- NO parentheses like (loaamanseur-remax.ca) or (centris.ca).
-- NO "according to…", "based on…", "per…", "Sources:", "References:".
-- Search the web silently; output only numbers + context + place/period when known.`;
-
-  const searchRulesFr = openSearch
-    ? `- Utilise web_search librement sur tout le web public (comme ChatGPT), pour toute question utile — marché immobilier, quartier, tendances, contexte.
-- Tu n'es PAS limité à une liste de sites. Cherche ce qui est le plus récent et crédible — mais NE NOMME JAMAIS les sites dans la réponse.
-- Pour les prix: privilégie des chiffres avec lieu + période; si les sources divergent, dis-le brièvement SANS nommer de site.
-- Fais plusieurs recherches ciblées si utile (quartier, type de propriété, année).`
-    : `- Utilise web_search pour moyennes / médianes de quartier et contexte ville.
-- En interne seulement, privilégie: ${PREFERRED_PORTALS}. NE les cite JAMAIS dans la réponse utilisateur.
-- Les requêtes doivent inclure quartier + ville + "prix moyen" / "médiane vendue" / "unifamiliale" et l'année si pertinent.
-- S'il y a plusieurs chiffres, mène avec la meilleure moyenne/médiane de quartier; Montréal en secondaire — sans nommer de site.`;
-
-  const searchRulesEn = openSearch
-    ? `- Use web_search freely across the public web (ChatGPT-style) for any useful question — market, neighbourhood, trends, context.
-- You are NOT limited to a fixed list of websites. Prefer recent credible results — but NEVER name those sites in the user-facing reply.
-- For prices: prefer figures that name place + time period; if figures disagree, say so briefly WITHOUT naming a site.
-- Run multiple focused searches when useful (neighbourhood, property type, year).`
-    : `- Use web_search for neighbourhood averages / medians and city context.
-- Internally prefer: ${PREFERRED_PORTALS}. NEVER cite them in the user-facing reply.
-- Search queries should include neighbourhood + city + "average home price" / "median sold" / "single-family" and the year when relevant.
-- If several figures appear, lead with the best neighbourhood average/median; Montreal secondary — without naming any site.`;
-
-  const system =
-    args.locale === "fr"
-      ? `Tu es l'assistant Estate Valora pour Ashkan Shamloo (courtier immobilier agréé, Montréal / Québec).
-Réponds comme ChatGPT: propre, scannable, pas un long essai.
-
-${noSourcesRuleFr}
-
-Mise en forme (comme ChatGPT — obligatoire):
-- Utilise **gras** pour les chiffres clés et libellés courts (ex. **865 520 $ CAD**).
-- Sépare les blocs avec une ligne dividere seule: ---
-- Tu peux utiliser de courtes puces • (une idée par ligne).
-- Structure typique:
-  **Réponse**
-  une ligne avec le chiffre
-  ---
-  1–2 phrases de contexte
-  ---
-  une courte note Ashkan (seulement si estimation)
-- Court: en général 2–4 petits blocs. Pas de roman. Pas de tableaux. Pas de # titres.
-
-Recherche:
-${searchRulesFr}
-- Propriété précise: fourchette CAD courte si les stats le supportent.
-- Listings Estate Valora: silencieux. Jamais PDF / knowledge base.
-- Mémoire: suis "Recent conversation".
-- N'invente pas de prix. Réponds en français (Québec).`
-      : `You are the Estate Valora assistant for Ashkan Shamloo (Licensed Real Estate Broker, Montreal / Quebec).
-Answer like ChatGPT: clean and scannable — not a long essay.
-
-${noSourcesRuleEn}
-
-Formatting (ChatGPT-style — required):
-- Use **bold** for key numbers and short labels (e.g. **$865,520 CAD**).
-- Separate sections with a single divider line: ---
-- You may use short • bullets (one idea per line).
-- Typical structure:
-  **Answer**
-  one line with the figure
-  ---
-  1–2 short context sentences
-  ---
-  one short Ashkan note (only when giving an estimate)
-- Keep it tight: usually 2–4 small blocks. No essays. No tables. No # headings.
-
-Search:
-${searchRulesEn}
-- Specific property: short CAD range only if stats support it.
-- Estate Valora listings: silent. Never PDF / knowledge base.
-- Memory: use "Recent conversation".
-- Do not invent prices. Reply in English.`;
-
-  const turnSearchHint = openSearch
-    ? `- Search the open web as needed. Prefer recent neighbourhood-specific figures for price questions.
-- Specific home → local stats, then a short preliminary CAD range if supported.`
-    : `- Neighbourhood average → web_search (preferred portals internally only; never name them).
-- Specific home → same, then a short preliminary CAD range if supported.`;
+  const { system, turnHint } = buildChatSystemPromptParts({
+    locale: args.locale,
+    openSearch,
+    preferredPortals: PREFERRED_PORTALS,
+    intake: args.intake,
+  });
 
   const input = `${system}
 
 Internal reference material (use silently if helpful; never tell the user it was missing):
 ${args.compsContext}
+
+Intake state (authoritative — do not re-ask Known facts):
+${args.intake.stateBlock}
 ${historyBlock}
 Latest user message:
 ${args.message}
 
 This turn:
 - Follow-ups: stay in the same thread context. Search only if you need fresh/compared figures.
-${turnSearchHint}
-- Format like ChatGPT: **bold** key numbers, --- dividers, short blocks. Search mode: ${searchMode}.
+${turnHint}
+- Format: **bold** key numbers when giving figures; --- only when useful. Search mode: ${searchMode}.
 - CRITICAL: Do not include any website name, domain, URL, or "(site.ca)" citation in your reply.`;
 
   const models = [...new Set([model, "gpt-6.1-terra", "gpt-4o"].filter(Boolean))];

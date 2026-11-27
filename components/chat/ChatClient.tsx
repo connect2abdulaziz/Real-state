@@ -1,11 +1,26 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { Home, Send, Loader2, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUp,
+  BarChart3,
+  CalendarDays,
+  Home,
+  Plus,
+  Sparkles,
+  TrendingUp,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { ChatRichText } from "@/components/chat/ChatRichText";
 
 const SESSION_KEY = "estate-valora-chat-session";
+const HERO_SRC = "/images/chat-hero-dusk.jpg";
+
+const STARTER_ICONS: LucideIcon[] = [Home, CalendarDays, TrendingUp, Wallet];
 
 type ChatMessage = {
   id: string;
@@ -18,6 +33,79 @@ function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function GoldStar({ className = "w-8 h-8" }: { className?: string }) {
+  return (
+    <span
+      className={`inline-flex items-center justify-center rounded-full bg-[linear-gradient(145deg,#e8d5a3,#c4a35a)] text-[#1a1510] shadow-[0_0_20px_rgba(215,168,102,0.35)] shrink-0 ${className}`}
+      aria-hidden
+    >
+      <Sparkles size={14} strokeWidth={2.25} />
+    </span>
+  );
+}
+
+function FleurDeLis({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="currentColor"
+      aria-hidden
+    >
+      <path d="M12 2c.4 1.6 1.2 2.8 2.4 3.6-.8.4-1.6.6-2.4.6S10.4 6 9.6 5.6C10.8 4.8 11.6 3.6 12 2zm0 5.2c1.2 0 2.3-.3 3.3-.9.6 1.3 1.7 2.3 3.1 2.7-.9 1.1-2.2 1.9-3.7 2.2.5 1.4 1.4 2.6 2.6 3.4-1.5.2-2.9-.1-4.1-.8v4.4h-2.4v-4.4c-1.2.7-2.6 1-4.1.8 1.2-.8 2.1-2 2.6-3.4-1.5-.3-2.8-1.1-3.7-2.2 1.4-.4 2.5-1.4 3.1-2.7 1 .6 2.1.9 3.3.9z" />
+    </svg>
+  );
+}
+
+function ThinkingBubble({
+  locale,
+  amending,
+}: {
+  locale: "en" | "fr";
+  amending: boolean;
+}) {
+  const labels =
+    locale === "fr"
+      ? amending
+        ? [
+            "Je reprends avec vos précisions…",
+            "Mise à jour en cours…",
+            "Encore un instant…",
+          ]
+        : ["Je réfléchis…", "Je regarde le marché…", "Presque prêt…"]
+      : amending
+        ? [
+            "Updating with your extra details…",
+            "Re-checking…",
+            "Almost there…",
+          ]
+        : ["Thinking…", "Checking the market…", "Almost there…"];
+
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      setIdx((i) => (i + 1) % labels.length);
+    }, 2200);
+    return () => window.clearInterval(t);
+  }, [labels.length]);
+
+  return (
+    <div className="flex justify-start gap-2.5 items-end">
+      <GoldStar className="w-7 h-7" />
+      <div className="rounded-2xl rounded-bl-md bg-white/[0.06] border border-white/10 px-4 py-3 flex items-center gap-3 text-[13px] text-white/70">
+        <span className="flex items-center gap-1.5 text-[#d7a866]" aria-hidden>
+          <span className="chat-thinking-dot" />
+          <span className="chat-thinking-dot" />
+          <span className="chat-thinking-dot" />
+        </span>
+        <span className="chat-thinking-label" key={labels[idx]}>
+          {labels[idx]}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function ChatClient({
   initialLocale = "en",
 }: {
@@ -28,51 +116,68 @@ export function ChatClient({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [amending, setAmending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  /** Keep latest session id for send (avoids losing history when state lags). */
   const sessionIdRef = useRef<string | null>(null);
+  const requestIdRef = useRef<string | null>(null);
+  const pendingUserIdRef = useRef<string | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const copy =
     locale === "fr"
       ? {
-          title: "Assistant Estate Valora",
-          subtitle:
-            "Comparables Estate Valora + recherche web marché (comme ChatGPT).",
-          placeholder:
-            "Ex. Prix moyen des unifamiliales à Saint-Léonard? Ou Fontainebleau?",
-          send: "Envoyer",
-          empty:
-            "Demandez des moyennes de quartier, des tendances ou une fourchette pour une maison. J’utilise vos PDFs et le web.",
-          try: "Essayez",
-          valuation: "Estimation guidée →",
+          brand: "Estate Valora",
+          heroHeadlineBefore: "Découvrez ce que ",
+          heroHeadlineAccent: "vaut",
+          heroHeadlineAfter: " votre maison.",
+          heroSub:
+            "Perspective locale. Une prochaine étape plus claire. Explorez le potentiel de votre propriété avec votre assistant immobilier IA.",
+          badgeQc: "Immobilier au Québec",
+          badgeInsights: "Perspectives personnalisées",
+          chatSubtitle: "Votre assistant IA immobilier.",
+          placeholder: "Posez n’importe quelle question sur l’immobilier…",
+          emptyTitle: "Comment puis-je vous aider avec votre propriété?",
+          empty: "Explorez les valeurs, les tendances du marché et votre prochaine étape.",
+          inviteBubble: "Posez une question. Trouvons votre prochaine étape.",
+          orStart: "Ou commencez ici",
+          selectPrompt: "Choisissez une suggestion ou écrivez la vôtre",
           newChat: "Nouvelle conversation",
-          disclaimer:
-            "Aperçu préliminaire IA — pas une évaluation certifiée. Sous réserve de révision par Ashkan Shamloo.",
+          disclaimer: "Aperçus IA seulement. Pas une évaluation certifiée.",
+          composingHint:
+            "Vous pouvez continuer à écrire — Envoyer ajoute à votre dernier message.",
           starters: [
-            "Quel est le prix moyen d’une unifamiliale à Saint-Léonard?",
-            "Combien pourrait valoir une maison détachée 4 chambres sur le boulevard Lacordaire à Saint-Léonard?",
-            "Quel est le prix moyen des maisons à Fontainebleau?",
+            "Quelle est la valeur de ma propriété aujourd’hui?",
+            "Est-ce le bon moment pour vendre ma propriété?",
+            "Comment évolue le marché immobilier dans mon quartier?",
+            "Quel type de propriété puis-je acheter avec mon budget?",
           ],
         }
       : {
-          title: "Estate Valora assistant",
-          subtitle:
-            "Estate Valora comps + live web market search (ChatGPT-style).",
-          placeholder:
-            "e.g. Average single-family price in Saint-Léonard? Or Fontainebleau?",
-          send: "Send",
-          empty:
-            "Ask for neighbourhood averages, trends, or a range for a specific home. I use your PDFs and the web.",
-          try: "Try",
-          valuation: "Guided valuation →",
+          brand: "Estate Valora",
+          heroHeadlineBefore: "Discover what your home is ",
+          heroHeadlineAccent: "worth",
+          heroHeadlineAfter: ".",
+          heroSub:
+            "Local insight. A clearer next move. Explore your property’s potential with your AI real estate assistant.",
+          badgeQc: "Québec real estate",
+          badgeInsights: "Personalized insights",
+          chatSubtitle: "Your real estate AI assistant.",
+          placeholder: "Ask anything about real estate…",
+          emptyTitle: "How can I help with your property?",
+          empty: "Explore values, market trends, and your next move.",
+          inviteBubble: "Ask a question. Let’s find your next move.",
+          orStart: "Or start here",
+          selectPrompt: "Select a prompt or write your own",
           newChat: "New chat",
-          disclaimer:
-            "Preliminary AI insight — not a certified appraisal. Subject to review by Ashkan Shamloo.",
+          disclaimer: "AI insights only. Not a certified appraisal.",
+          composingHint:
+            "You can keep typing — Send adds to your last message.",
           starters: [
-            "What’s the average single-family home price in Saint-Léonard?",
-            "What could a 4-bed detached on Boulevard Lacordaire in Saint-Léonard be worth?",
-            "What’s the average house price in Fontainebleau?",
+            "What is my property worth in today’s market?",
+            "Is now a good time to sell my property?",
+            "How has the real estate market changed in my neighbourhood?",
+            "What can I afford with my home-buying budget?",
           ],
         };
 
@@ -95,7 +200,6 @@ export function ChatClient({
       try {
         const res = await fetch(`/api/chat?sessionId=${sessionId}`);
         if (!res.ok) {
-          // Stale / deleted session — start fresh next send
           if (res.status === 404) {
             try {
               localStorage.removeItem(SESSION_KEY);
@@ -144,7 +248,7 @@ export function ChatClient({
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, sending]);
+  }, [messages, sending, amending]);
 
   function resetChat() {
     try {
@@ -153,41 +257,133 @@ export function ChatClient({
       /* */
     }
     sessionIdRef.current = null;
+    requestIdRef.current = null;
+    pendingUserIdRef.current = null;
     setSessionId(null);
     setMessages([]);
     setError(null);
+    setSending(false);
+    setAmending(false);
+  }
+
+  async function postChat(args: {
+    text: string;
+    requestId: string;
+  }): Promise<{
+    ok: boolean;
+    sessionId?: string;
+    reply?: string;
+    at?: string;
+    superseded?: boolean;
+    error?: string;
+  }> {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: args.text,
+        locale,
+        sessionId: sessionIdRef.current,
+        requestId: args.requestId,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { ok: false, error: data.error || "Chat failed" };
+    }
+    return {
+      ok: true,
+      sessionId: data.sessionId,
+      reply: data.reply,
+      at: data.at,
+      superseded: Boolean(data.superseded),
+    };
   }
 
   async function sendMessage(raw: string) {
     const text = raw.trim();
-    if (!text || sending) return;
+    if (!text) return;
 
-    setInput("");
     setError(null);
+    setInput("");
+
+    if (sending && pendingUserIdRef.current) {
+      const pendingId = pendingUserIdRef.current;
+      let combined = text;
+      setMessages((prev) => {
+        const current = prev.find((m) => m.id === pendingId);
+        if (!current) return prev;
+        combined = `${current.text.trim()} ${text}`.replace(/\s+/g, " ").trim();
+        return prev.map((m) =>
+          m.id === pendingId ? { ...m, text: combined } : m
+        );
+      });
+
+      const requestId = uid();
+      requestIdRef.current = requestId;
+      setAmending(true);
+      queueMicrotask(() => inputRef.current?.focus());
+
+      try {
+        const data = await postChat({ text: combined, requestId });
+        if (requestIdRef.current !== requestId) return;
+        if (!data.ok) throw new Error(data.error || "Chat failed");
+        if (data.superseded) return;
+        if (data.sessionId) {
+          sessionIdRef.current = data.sessionId;
+          setSessionId(data.sessionId);
+          try {
+            localStorage.setItem(SESSION_KEY, data.sessionId);
+          } catch {
+            /* */
+          }
+        }
+        if (data.reply) {
+          setMessages((m) => [
+            ...m,
+            {
+              id: uid(),
+              role: "assistant",
+              text: data.reply!,
+              at: data.at || new Date().toISOString(),
+            },
+          ]);
+        }
+        pendingUserIdRef.current = null;
+        setSending(false);
+        setAmending(false);
+      } catch (err) {
+        if (requestIdRef.current !== requestId) return;
+        setError(err instanceof Error ? err.message : "Chat failed");
+        setSending(false);
+        setAmending(false);
+        pendingUserIdRef.current = null;
+      }
+      return;
+    }
+
+    if (sending) return;
+
     const userMsg: ChatMessage = {
       id: uid(),
       role: "user",
       text,
       at: new Date().toISOString(),
     };
+    pendingUserIdRef.current = userMsg.id;
     setMessages((m) => [...m, userMsg]);
     setSending(true);
+    setAmending(false);
+
+    const requestId = uid();
+    requestIdRef.current = requestId;
+    queueMicrotask(() => inputRef.current?.focus());
 
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          locale,
-          // Ref is always current — React state can lag one send behind
-          sessionId: sessionIdRef.current,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Chat failed");
-      }
+      const data = await postChat({ text, requestId });
+      if (requestIdRef.current !== requestId) return;
+      if (!data.ok) throw new Error(data.error || "Chat failed");
+      if (data.superseded) return;
       if (data.sessionId) {
         sessionIdRef.current = data.sessionId;
         setSessionId(data.sessionId);
@@ -197,19 +393,26 @@ export function ChatClient({
           /* */
         }
       }
-      setMessages((m) => [
-        ...m,
-        {
-          id: uid(),
-          role: "assistant",
-          text: data.reply,
-          at: data.at || new Date().toISOString(),
-        },
-      ]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Chat failed");
-    } finally {
+      if (data.reply) {
+        setMessages((m) => [
+          ...m,
+          {
+            id: uid(),
+            role: "assistant",
+            text: data.reply!,
+            at: data.at || new Date().toISOString(),
+          },
+        ]);
+      }
+      pendingUserIdRef.current = null;
       setSending(false);
+      setAmending(false);
+    } catch (err) {
+      if (requestIdRef.current !== requestId) return;
+      setError(err instanceof Error ? err.message : "Chat failed");
+      setSending(false);
+      setAmending(false);
+      pendingUserIdRef.current = null;
     }
   }
 
@@ -219,173 +422,308 @@ export function ChatClient({
   }
 
   return (
-    <div className="relative w-full h-[100dvh] bg-background overflow-hidden notranslate">
-      <div
-        className="pointer-events-none absolute inset-0"
-        aria-hidden="true"
-        style={{
-          background: `
-            radial-gradient(ellipse 45% 60% at 0% 40%, rgba(183,172,127,0.07), transparent 55%),
-            radial-gradient(ellipse 40% 50% at 100% 70%, rgba(44,156,197,0.05), transparent 50%),
-            linear-gradient(180deg, #07090b 0%, #0a0d11 50%, #07090b 100%)
-          `,
-        }}
-      />
+    <div className="relative w-full h-[100dvh] overflow-hidden notranslate bg-[#07080a] text-white">
+      {/* Mobile backdrop hero */}
+      <div className="lg:hidden absolute inset-0" aria-hidden>
+        <Image
+          src={HERO_SRC}
+          alt=""
+          fill
+          priority
+          className="object-cover opacity-40"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/85 to-[#07080a]" />
+      </div>
 
-      <div className="relative page-container h-full py-3 sm:py-4 md:py-6 flex flex-col min-h-0">
-        <div className="flex-1 min-w-0 rounded-md border border-white/10 bg-surface/90 backdrop-blur-sm flex flex-col overflow-hidden min-h-0 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_24px_80px_rgba(0,0,0,0.45)]">
-          <div className="px-4 sm:px-6 py-3.5 border-b border-white/10 flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <Link
-                href="/"
-                className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0"
-                aria-label="Home"
-              >
-                <Home size={14} className="text-background" />
-              </Link>
-              <div className="min-w-0">
-                <p className="text-[15px] font-semibold text-foreground truncate flex items-center gap-2">
-                  <Sparkles size={14} className="text-electric shrink-0" />
-                  {copy.title}
-                </p>
-                
+      <div className="relative h-full flex flex-col lg:flex-row">
+        {/* Left hero — desktop */}
+        <aside className="hidden lg:flex relative w-[44%] xl:w-[46%] min-h-0 flex-col overflow-hidden">
+          <Image
+            src={HERO_SRC}
+            alt=""
+            fill
+            priority
+            className="object-cover"
+            sizes="46vw"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `
+                linear-gradient(90deg, rgba(7,8,10,0.55) 0%, rgba(7,8,10,0.25) 45%, rgba(7,8,10,0.65) 100%),
+                linear-gradient(180deg, rgba(7,8,10,0.55) 0%, transparent 35%, rgba(7,8,10,0.75) 100%)
+              `,
+            }}
+          />
+
+          <div className="relative z-10 flex flex-col h-full px-8 xl:px-12 py-8 xl:py-10">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2.5 text-white/95 hover:text-white transition-colors w-fit"
+            >
+              <span className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-sm">
+                <Home size={14} />
+              </span>
+              <span className="font-serif text-[18px] tracking-tight">
+                {copy.brand}
+              </span>
+            </Link>
+
+            <div className="flex-1 flex flex-col justify-center max-w-md xl:max-w-lg py-10">
+              <h1 className="font-serif text-[2.6rem] xl:text-[3.15rem] leading-[1.12] tracking-tight text-white">
+                {copy.heroHeadlineBefore}
+                <em className="italic text-[#d7a866] font-serif">
+                  {copy.heroHeadlineAccent}
+                </em>
+                {copy.heroHeadlineAfter}
+              </h1>
+              <p className="mt-5 text-[14px] xl:text-[15px] leading-relaxed text-white/75 max-w-sm">
+                {copy.heroSub}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-6 text-[12px] text-white/70">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full border border-[#d7a866]/50 bg-[#d7a866]/10 flex items-center justify-center text-[#d7a866]">
+                  <FleurDeLis className="w-4 h-4" />
+                </span>
+                <span>{copy.badgeQc}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full border border-[#d7a866]/50 bg-[#d7a866]/10 flex items-center justify-center text-[#d7a866]">
+                  <BarChart3 size={14} />
+                </span>
+                <span>{copy.badgeInsights}</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setLocale("en")}
-                className={`px-2.5 py-1 rounded-full text-[11px] border ${
-                  locale === "en"
-                    ? "border-electric/40 bg-electric/15 text-electric"
-                    : "border-white/10 text-foreground-muted"
-                }`}
-              >
-                EN
-              </button>
-              <button
-                type="button"
-                onClick={() => setLocale("fr")}
-                className={`px-2.5 py-1 rounded-full text-[11px] border ${
-                  locale === "fr"
-                    ? "border-electric/40 bg-electric/15 text-electric"
-                    : "border-white/10 text-foreground-muted"
-                }`}
-              >
-                FR
-              </button>
-              <button
-                type="button"
-                onClick={resetChat}
-                className="hidden sm:inline text-[12px] text-foreground-subtle hover:text-foreground-muted px-2"
-              >
-                {copy.newChat}
-              </button>
-              <Link
-                href="/valuation"
-                className="text-[12px] text-electric hover:underline whitespace-nowrap"
-              >
-                {copy.valuation}
-              </Link>
-            </div>
+          </div>
+        </aside>
+
+        {/* Right chat column */}
+        <div className="relative flex-1 min-w-0 min-h-0 flex flex-col p-3 sm:p-4 lg:p-5 xl:p-6 lg:pl-3">
+          {/* Mobile brand strip */}
+          <div className="lg:hidden flex items-center justify-between mb-3 px-1">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-white/95"
+            >
+              <Home size={16} className="text-[#d7a866]" />
+              <span className="font-serif text-[16px]">{copy.brand}</span>
+            </Link>
           </div>
 
-          <div
-            ref={scrollRef}
-            className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5 space-y-3"
-          >
-            {messages.length === 0 && (
-              <div className="h-full min-h-[240px] flex flex-col items-center justify-center text-center gap-4 px-4">
-                <div className="w-full max-w-lg space-y-2">
-                  <p className="text-[11px] uppercase tracking-[0.1em] text-foreground-subtle">
-                    {copy.try}
+          <div className="flex-1 min-h-0 rounded-2xl border border-white/10 bg-[#12151a]/92 backdrop-blur-md flex flex-col overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.55),0_0_0_1px_rgba(215,168,102,0.06)]">
+            {/* Chat header */}
+            <div className="px-3.5 sm:px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <GoldStar className="w-9 h-9" />
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold text-white truncate leading-tight">
+                    {copy.brand}
                   </p>
-                  <div className="flex flex-col gap-2">
-                    {copy.starters.map((starter) => (
-                      <button
-                        key={starter}
-                        type="button"
-                        disabled={sending}
-                        onClick={() => void sendMessage(starter)}
-                        className="w-full text-left rounded-md border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[13px] sm:text-[14px] text-foreground-muted hover:border-electric/40 hover:text-foreground hover:bg-electric/10 transition-colors disabled:opacity-50"
-                      >
-                        {starter}
-                      </button>
-                    ))}
+                  <p className="text-[12px] text-white/50 truncate">
+                    {copy.chatSubtitle}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <div className="flex items-center rounded-full border border-white/10 bg-white/[0.03] p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setLocale("en")}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                      locale === "en"
+                        ? "bg-[#d7a866]/20 text-[#e8d5a3]"
+                        : "text-white/45 hover:text-white/70"
+                    }`}
+                  >
+                    EN
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLocale("fr")}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                      locale === "fr"
+                        ? "bg-[#d7a866]/20 text-[#e8d5a3]"
+                        : "text-white/45 hover:text-white/70"
+                    }`}
+                  >
+                    FR
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetChat}
+                  className="inline-flex items-center gap-1 text-[12px] text-white/55 hover:text-white/85 px-2 py-1.5 rounded-full border border-transparent hover:border-white/10 transition-colors"
+                >
+                  <Plus size={12} />
+                  <span className="hidden sm:inline">{copy.newChat}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Thread */}
+            <div
+              ref={scrollRef}
+              className="flex-1 min-h-0 overflow-y-auto px-3.5 sm:px-5 py-5 space-y-3.5"
+            >
+              {messages.length === 0 && (
+                <div className="relative h-full min-h-[320px] flex flex-col items-center justify-center px-3 sm:px-5 py-6 sm:py-8">
+                  <div
+                    className="pointer-events-none absolute inset-0"
+                    aria-hidden
+                    style={{
+                      background:
+                        "radial-gradient(ellipse 50% 35% at 50% 18%, rgba(197,163,104,0.08), transparent 65%)",
+                    }}
+                  />
+                  <div className="relative w-full max-w-[28rem] sm:max-w-[30rem] flex flex-col items-center">
+                    <div className="mb-5 w-12 h-12 rounded-full border border-[#c5a368]/55 bg-[#c5a368]/10 flex items-center justify-center shadow-[0_0_28px_rgba(197,163,104,0.18)]">
+                      <span className="relative inline-flex text-[#c5a368]">
+                        <Sparkles size={16} strokeWidth={2} />
+                        <Sparkles
+                          size={10}
+                          strokeWidth={2}
+                          className="absolute -right-1.5 -top-1 opacity-80"
+                        />
+                      </span>
+                    </div>
+
+                    <h2 className="font-serif text-[1.55rem] sm:text-[1.85rem] text-white text-center tracking-tight leading-[1.2] text-balance">
+                      {copy.emptyTitle}
+                    </h2>
+                    <p className="mt-2.5 text-[13px] sm:text-[14px] text-white/45 text-center leading-relaxed max-w-[22rem]">
+                      {copy.empty}
+                    </p>
+
+                    <div className="mt-6 w-full rounded-2xl border border-white/10 bg-[#1a1c1f] px-4 py-3.5 text-[13px] sm:text-[14px] text-white/80 text-center leading-snug shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                      {copy.inviteBubble}
+                    </div>
+
+                    <div className="w-full flex items-center gap-3 my-5">
+                      <span className="h-px flex-1 bg-[#c5a368]/45" />
+                      <span className="text-[11px] text-white/40 whitespace-nowrap">
+                        {copy.orStart}
+                      </span>
+                      <span className="h-px flex-1 bg-[#c5a368]/45" />
+                    </div>
+
+                    <div className="w-full flex flex-col gap-2.5">
+                      {copy.starters.map((starter, i) => {
+                        const Icon = STARTER_ICONS[i] || Home;
+                        return (
+                          <button
+                            key={starter}
+                            type="button"
+                            disabled={sending}
+                            onClick={() => void sendMessage(starter)}
+                            className="group w-full flex items-center gap-0 rounded-full border border-white/12 bg-transparent hover:border-[#c5a368]/65 hover:bg-white/[0.03] transition-all duration-200 disabled:opacity-50 focus-visible:outline-none focus-visible:border-[#c5a368] focus-visible:ring-1 focus-visible:ring-[#c5a368]/35"
+                          >
+                            <span className="pl-3.5 pr-3 py-3.5 text-[#c5a368] shrink-0">
+                              <Icon size={18} strokeWidth={1.75} />
+                            </span>
+                            <span
+                              className="w-px self-stretch my-2.5 bg-white/12 shrink-0"
+                              aria-hidden
+                            />
+                            <span className="flex-1 min-w-0 text-left px-3.5 py-3 text-[13px] sm:text-[14px] text-white/90 leading-snug">
+                              {starter}
+                            </span>
+                            <span className="pr-3.5 pl-1 text-[#c5a368] shrink-0 transition-transform duration-200 group-hover:translate-x-0.5">
+                              <ArrowRight size={16} strokeWidth={1.75} />
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {messages.map((m) => (
-              <div
-                key={m.id}
-                className={`flex ${
-                  m.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
+              {messages.map((m) => (
                 <div
-                  className={`max-w-[min(95%,40rem)] rounded-md px-3.5 sm:px-4 py-2.5 text-[14px] sm:text-[15px] leading-relaxed break-words ${
+                  key={m.id}
+                  className={`flex gap-2.5 ${
                     m.role === "user"
-                      ? "rounded-tr-sm bg-electric/20 border border-electric/30 text-foreground whitespace-pre-wrap"
-                      : "rounded-tl-sm bg-surface-soft border border-white/10 text-foreground"
+                      ? "justify-end items-end"
+                      : "justify-start items-end"
                   }`}
                 >
-                  {m.role === "assistant" ? (
-                    <ChatRichText text={m.text} />
-                  ) : (
-                    m.text
+                  {m.role === "assistant" && (
+                    <GoldStar className="w-7 h-7 mb-0.5" />
                   )}
+                  <div
+                    className={`max-w-[min(92%,36rem)] px-3.5 sm:px-4 py-2.5 text-[14px] sm:text-[15px] leading-relaxed break-words ${
+                      m.role === "user"
+                        ? "rounded-2xl rounded-br-md bg-[linear-gradient(145deg,#e4cfa0,#c9a35e)] text-[#1a1510] whitespace-pre-wrap shadow-[0_8px_24px_rgba(201,163,94,0.2)]"
+                        : "rounded-2xl rounded-bl-md bg-white/[0.06] border border-white/10 text-white/90"
+                    }`}
+                  >
+                    {m.role === "assistant" ? (
+                      <ChatRichText text={m.text} />
+                    ) : (
+                      m.text
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {sending && (
-              <div className="flex justify-start">
-                <div className="rounded-md bg-surface-soft border border-white/10 px-4 py-3 flex items-center gap-2 text-[13px] text-foreground-muted">
-                  <Loader2 size={14} className="animate-spin" />
-                  …
-                </div>
-              </div>
-            )}
+              {sending && (
+                <ThinkingBubble locale={locale} amending={amending} />
+              )}
 
-            {error && (
-              <p className="text-[12px] text-warm break-words">{error}</p>
-            )}
-          </div>
-
-          <form
-            onSubmit={onSubmit}
-            className="border-t border-white/10 p-3 sm:p-4 shrink-0 bg-surface/95"
-          >
-            <div className="flex gap-2 max-w-3xl mx-auto">
-              <textarea
-                rows={2}
-                value={input}
-                disabled={sending}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void onSubmit(e as unknown as FormEvent);
-                  }
-                }}
-                placeholder={copy.placeholder}
-                className="flex-1 min-w-0 resize-none rounded-md border border-white/15 bg-white/[0.04] px-3.5 py-2.5 text-[14px] text-foreground outline-none placeholder:text-foreground-subtle focus:border-electric/60 disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={sending || !input.trim()}
-                className="self-end px-4 py-2.5 rounded-full bg-white text-background text-[13px] font-medium flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <Send size={14} />
-                {copy.send}
-              </button>
+              {error && (
+                <p className="text-[12px] text-[#e8a87c] break-words">{error}</p>
+              )}
             </div>
-            <p className="text-[10px] text-foreground-subtle text-center mt-2 max-w-3xl mx-auto">
-              {copy.disclaimer}
-            </p>
-          </form>
+
+            {/* Composer */}
+            <form
+              onSubmit={onSubmit}
+              className="border-t border-white/[0.07] p-3 sm:p-4 shrink-0 bg-[#0e1116]/80"
+            >
+              {sending ? (
+                <p className="text-[11px] text-[#d7a866]/90 text-center mb-2">
+                  {copy.composingHint}
+                </p>
+              ) : messages.length === 0 ? (
+                <p className="text-[11px] text-white/40 text-center mb-2">
+                  {copy.selectPrompt}
+                </p>
+              ) : null}
+              <div className="flex items-end gap-2 max-w-3xl mx-auto">
+                <div className="flex-1 min-w-0 flex items-end rounded-2xl border border-white/12 bg-white/[0.04] focus-within:border-[#d7a866]/55 transition-colors">
+                  <textarea
+                    ref={inputRef}
+                    rows={1}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        void onSubmit(e as unknown as FormEvent);
+                      }
+                    }}
+                    placeholder={copy.placeholder}
+                    className="flex-1 min-w-0 resize-none bg-transparent px-4 py-3 text-[14px] text-white outline-none placeholder:text-white/35 max-h-32"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={!input.trim()}
+                  aria-label={sending ? "Add" : "Send"}
+                  className="shrink-0 w-11 h-11 rounded-xl bg-[linear-gradient(145deg,#e4cfa0,#c9a35e)] text-[#1a1510] flex items-center justify-center disabled:opacity-40 hover:brightness-105 transition shadow-[0_8px_20px_rgba(201,163,94,0.25)]"
+                >
+                  <ArrowUp size={18} strokeWidth={2.5} />
+                </button>
+              </div>
+              <p className="text-[10px] text-white/35 text-center mt-2.5">
+                {copy.disclaimer}
+              </p>
+            </form>
+          </div>
         </div>
       </div>
     </div>

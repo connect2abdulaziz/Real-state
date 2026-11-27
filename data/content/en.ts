@@ -22,7 +22,7 @@ export const contentEn = {
     titleItalic: "60 seconds.",
     description: "Start the conversation — no commitment.",
     cta: "Start my evaluation",
-    ctaHref: "/valuation",
+    ctaHref: "/chat",
     secondary: "Sell with clarity.",
     scrollLabel: "SCROLL TO EXPLORE",
     /** Confirm remaining figures with client — $25M+ is confirmed */
@@ -66,7 +66,7 @@ export const contentEn = {
     ],
     body: "We create a space where insight and expertise exist in balance. Whether you are selling or buying, every step is designed to slow the guesswork — bringing clarity, privacy, and quiet confidence before you decide what comes next.",
     cta: "Start conversation",
-    ctaHref: "/valuation",
+    ctaHref: "/chat",
   },
 
   processSection: {
@@ -128,7 +128,7 @@ export const contentEn = {
       { label: "MARKET", value: "MTL", position: "right-bottom" },
     ],
     cta: "See my value range",
-    ctaHref: "/valuation",
+    ctaHref: "/chat",
   },
 
   listings: {

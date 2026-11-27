@@ -6,7 +6,7 @@ import { useMarketingLocale } from "@/components/layout/MarketingLocaleProvider"
 
 /**
  * Feeds locale marketing content into ReportScene.
- * CTAs stay on /valuation via content files.
+ * CTAs go to /chat via content files (/valuation kept unlisted).
  */
 export function ReportSection() {
   const report = useSiteContent().report;

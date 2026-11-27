@@ -62,7 +62,7 @@ export function Header() {
       <div className="flex items-center gap-3">
         <LocaleSwitcher />
         <FusedCtaButton
-          href="/valuation"
+          href="/chat"
           label={hero.cta}
           dataAttr="header-cta"
           className="hidden md:block"

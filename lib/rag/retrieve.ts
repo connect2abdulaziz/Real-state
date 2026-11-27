@@ -6,6 +6,10 @@ import {
   type CompPropertyType,
   type CompStatus,
 } from "@/lib/rag/meta";
+import {
+  buildChatFallbackSystemPrompt,
+  type ChatIntakeState,
+} from "@/lib/rag/chat-intake";
 
 export const EMBEDDING_MODEL =
   process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
@@ -112,11 +116,18 @@ export async function retrieveChunks(
   return rows;
 }
 
-export function buildChatSystemPrompt(locale: "en" | "fr"): string {
+export function buildChatSystemPrompt(
+  locale: "en" | "fr",
+  intake?: ChatIntakeState
+): string {
+  if (intake) {
+    return buildChatFallbackSystemPrompt(locale, intake);
+  }
+
   if (locale === "fr") {
     return `Tu es l'assistant Estate Valora pour Ashkan Shamloo (courtier immobilier agréé, Montréal / Québec).
 
-Réponds comme ChatGPT: **gras** pour les chiffres, séparateurs ---, court et propre.
+Réponds de façon fluide et amicale: **gras** pour les chiffres, séparateurs --- si utile, court et propre.
 JAMAIS d'URLs, domaines (ex. quelquechose-remax.ca), noms de sites, "selon…", ni liste Sources.
 Jamais PDF / knowledge base. N'invente pas de prix.
 Réponds en français (Québec).`;
@@ -124,7 +135,7 @@ Réponds en français (Québec).`;
 
   return `You are the Estate Valora assistant for Ashkan Shamloo (Licensed Real Estate Broker, Montreal / Quebec).
 
-Answer like ChatGPT: **bold** key numbers, --- dividers, clean and short.
+Reply in a fluid, friendly way: **bold** key numbers, --- dividers when useful, clean and short.
 NEVER include URLs, domains (e.g. something-remax.ca), website names, "according to…", or a Sources list.
 Never PDF / knowledge base. Do not invent prices.
 Reply in English.`;

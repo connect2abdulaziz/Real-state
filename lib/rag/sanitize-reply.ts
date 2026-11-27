@@ -152,10 +152,12 @@ export function sanitizeChatReply(text: string): string {
   );
 
   // Attribution leftovers: "according to .", "based on ,"
+  // Use word boundaries on short tokens (per/via/from) so "Perfect" / "viable" stay intact.
   t = t.replace(
-    /\b(?:according\s+to|based\s+on|as\s+per|per|via|from|reported\s+by|data\s+from|figures?\s+from|sourced?\s+from|selon|d['’]après)\s*[.,;:]?\s*/gi,
+    /\b(?:according\s+to|based\s+on|as\s+per|reported\s+by|data\s+from|figures?\s+from|sourced?\s+from|selon|d['’]après)\s*[.,;:]?\s*/gi,
     ""
   );
+  t = t.replace(/\b(?:per|via|from)\b\s*[.,;:](?:\s|$)/gi, " ");
 
   // Cleanup punctuation left by removals
   t = t.replace(/\*\*\s*\*\*/g, "");

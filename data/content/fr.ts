@@ -21,7 +21,7 @@ export const contentFr = {
     titleItalic: "60 secondes.",
     description: "Amorcez la conversation — sans engagement.",
     cta: "Démarrer mon évaluation",
-    ctaHref: "/valuation",
+    ctaHref: "/chat",
     secondary: "Vendez avec clarté.",
     scrollLabel: "DÉFILER POUR EXPLORER",
     stats: [
@@ -60,7 +60,7 @@ export const contentFr = {
     ],
     body: "Nous créons un espace où l'insight et l'expertise s'équilibrent. Chaque étape est conçue pour ralentir les approximations — apportant clarté, confidentialité et une confiance tranquille avant de décider de la suite pour votre propriété.",
     cta: "Démarrer l'évaluation",
-    ctaHref: "/valuation",
+    ctaHref: "/chat",
   },
 
   processSection: {
@@ -122,7 +122,7 @@ export const contentFr = {
       { label: "MARCHÉ", value: "MTL", position: "right-bottom" },
     ],
     cta: "Voir ma fourchette de valeur",
-    ctaHref: "/valuation",
+    ctaHref: "/chat",
   },
 
   listings: {
