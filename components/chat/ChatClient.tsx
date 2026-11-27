@@ -135,7 +135,7 @@ export function ChatClient({
             "Perspective locale. Une prochaine étape plus claire. Explorez le potentiel de votre propriété avec votre assistant immobilier IA.",
           badgeQc: "Immobilier au Québec",
           badgeInsights: "Perspectives personnalisées",
-          chatSubtitle: "Votre assistant IA immobilier.",
+          chatSubtitle: "Votre assistant immobilier intelligent.",
           placeholder: "Posez n’importe quelle question sur l’immobilier…",
           emptyTitle: "Comment puis-je vous aider avec votre propriété?",
           empty: "Explorez les valeurs, les tendances du marché et votre prochaine étape.",
@@ -162,7 +162,7 @@ export function ChatClient({
             "Local insight. A clearer next move. Explore your property’s potential with your AI real estate assistant.",
           badgeQc: "Québec real estate",
           badgeInsights: "Personalized insights",
-          chatSubtitle: "Your real estate AI assistant.",
+          chatSubtitle: "Your intelligent real estate assistant.",
           placeholder: "Ask anything about real estate…",
           emptyTitle: "How can I help with your property?",
           empty: "Explore values, market trends, and your next move.",
@@ -460,7 +460,7 @@ export function ChatClient({
           <div className="relative z-10 flex flex-col h-full px-8 xl:px-12 py-8 xl:py-10">
             <Link
               href="/"
-              className="inline-flex items-center gap-2.5 text-white/95 hover:text-white transition-colors w-fit"
+              className="inline-flex items-center gap-2.5 text-white/95 hover:text-white transition-colors w-fit cursor-pointer"
             >
               <span className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-sm">
                 <Home size={14} />
@@ -501,39 +501,31 @@ export function ChatClient({
         </aside>
 
         {/* Right chat column */}
-        <div className="relative flex-1 min-w-0 min-h-0 flex flex-col p-3 sm:p-4 lg:p-5 xl:p-6 lg:pl-3">
-          {/* Mobile brand strip */}
-          <div className="lg:hidden flex items-center justify-between mb-3 px-1">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-white/95"
-            >
-              <Home size={16} className="text-[#d7a866]" />
-              <span className="font-serif text-[16px]">{copy.brand}</span>
-            </Link>
-          </div>
-
-          <div className="flex-1 min-h-0 rounded-2xl border border-white/10 bg-[#12151a]/92 backdrop-blur-md flex flex-col overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.55),0_0_0_1px_rgba(215,168,102,0.06)]">
+        <div className="relative flex-1 min-w-0 min-h-0 flex flex-col p-0 sm:p-3 lg:p-5 xl:p-6 lg:pl-3">
+          <div className="flex-1 min-h-0 rounded-none sm:rounded-2xl border-0 sm:border border-white/10 bg-[#12151a]/95 sm:bg-[#12151a]/92 backdrop-blur-md flex flex-col overflow-hidden shadow-none sm:shadow-[0_24px_80px_rgba(0,0,0,0.55),0_0_0_1px_rgba(215,168,102,0.06)]">
             {/* Chat header */}
-            <div className="px-3.5 sm:px-5 py-3.5 border-b border-white/[0.07] flex items-center justify-between gap-2 shrink-0">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <GoldStar className="w-9 h-9" />
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3.5 border-b border-white/[0.07] flex items-center justify-between gap-2 shrink-0">
+              <Link
+                href="/"
+                className="flex items-center gap-2 sm:gap-2.5 min-w-0 cursor-pointer hover:opacity-90 transition-opacity"
+              >
+                <GoldStar className="w-8 h-8 sm:w-9 sm:h-9" />
                 <div className="min-w-0">
-                  <p className="text-[15px] font-semibold text-white truncate leading-tight">
+                  <p className="text-[14px] sm:text-[15px] font-semibold text-white truncate leading-tight">
                     {copy.brand}
                   </p>
-                  <p className="text-[12px] text-white/50 truncate">
+                  <p className="text-[10px] sm:text-[12px] text-white/50 truncate">
                     {copy.chatSubtitle}
                   </p>
                 </div>
-              </div>
+              </Link>
 
-              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                 <div className="flex items-center rounded-full border border-white/10 bg-white/[0.03] p-0.5">
                   <button
                     type="button"
                     onClick={() => setLocale("en")}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                    className={`cursor-pointer px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
                       locale === "en"
                         ? "bg-[#d7a866]/20 text-[#e8d5a3]"
                         : "text-white/45 hover:text-white/70"
@@ -544,7 +536,7 @@ export function ChatClient({
                   <button
                     type="button"
                     onClick={() => setLocale("fr")}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                    className={`cursor-pointer px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
                       locale === "fr"
                         ? "bg-[#d7a866]/20 text-[#e8d5a3]"
                         : "text-white/45 hover:text-white/70"
@@ -556,9 +548,9 @@ export function ChatClient({
                 <button
                   type="button"
                   onClick={resetChat}
-                  className="inline-flex items-center gap-1 text-[12px] text-white/55 hover:text-white/85 px-2 py-1.5 rounded-full border border-transparent hover:border-white/10 transition-colors"
+                  className="cursor-pointer inline-flex items-center gap-1 text-[12px] text-white/55 hover:text-white/85 px-1.5 sm:px-2 py-1.5 rounded-full border border-transparent hover:border-white/10 transition-colors"
                 >
-                  <Plus size={12} />
+                  <Plus size={14} />
                   <span className="hidden sm:inline">{copy.newChat}</span>
                 </button>
               </div>
@@ -567,10 +559,10 @@ export function ChatClient({
             {/* Thread */}
             <div
               ref={scrollRef}
-              className="flex-1 min-h-0 overflow-y-auto px-3.5 sm:px-5 py-5 space-y-3.5"
+              className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-5 py-3 sm:py-5 space-y-3"
             >
               {messages.length === 0 && (
-                <div className="relative h-full min-h-[320px] flex flex-col items-center justify-center px-3 sm:px-5 py-6 sm:py-8">
+                <div className="relative h-full min-h-0 flex flex-col items-center justify-start sm:justify-center px-1 sm:px-5 pt-3 pb-4 sm:py-8">
                   <div
                     className="pointer-events-none absolute inset-0"
                     aria-hidden
@@ -580,37 +572,38 @@ export function ChatClient({
                     }}
                   />
                   <div className="relative w-full max-w-[28rem] sm:max-w-[30rem] flex flex-col items-center">
-                    <div className="mb-5 w-12 h-12 rounded-full border border-[#c5a368]/55 bg-[#c5a368]/10 flex items-center justify-center shadow-[0_0_28px_rgba(197,163,104,0.18)]">
+                    <div className="mb-3 sm:mb-5 w-9 h-9 sm:w-12 sm:h-12 rounded-full border border-[#c5a368]/55 bg-[#c5a368]/10 flex items-center justify-center shadow-[0_0_28px_rgba(197,163,104,0.18)]">
                       <span className="relative inline-flex text-[#c5a368]">
-                        <Sparkles size={16} strokeWidth={2} />
+                        <Sparkles size={14} strokeWidth={2} className="sm:hidden" />
+                        <Sparkles size={16} strokeWidth={2} className="hidden sm:block" />
                         <Sparkles
-                          size={10}
+                          size={9}
                           strokeWidth={2}
-                          className="absolute -right-1.5 -top-1 opacity-80"
+                          className="absolute -right-1 -top-0.5 sm:-right-1.5 sm:-top-1 opacity-80"
                         />
                       </span>
                     </div>
 
-                    <h2 className="font-serif text-[1.55rem] sm:text-[1.85rem] text-white text-center tracking-tight leading-[1.2] text-balance">
+                    <h2 className="font-serif text-[1.25rem] sm:text-[1.85rem] text-white text-center tracking-tight leading-[1.2] text-balance px-1">
                       {copy.emptyTitle}
                     </h2>
-                    <p className="mt-2.5 text-[13px] sm:text-[14px] text-white/45 text-center leading-relaxed max-w-[22rem]">
+                    <p className="mt-1.5 sm:mt-2.5 text-[12px] sm:text-[14px] text-white/45 text-center leading-relaxed max-w-[22rem] px-1">
                       {copy.empty}
                     </p>
 
-                    <div className="mt-6 w-full rounded-2xl border border-white/10 bg-[#1a1c1f] px-4 py-3.5 text-[13px] sm:text-[14px] text-white/80 text-center leading-snug shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                    <div className="mt-3 sm:mt-6 w-full rounded-xl sm:rounded-2xl border border-white/10 bg-[#1a1c1f] px-3 sm:px-4 py-2.5 sm:py-3.5 text-[12px] sm:text-[14px] text-white/80 text-center leading-snug shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                       {copy.inviteBubble}
                     </div>
 
-                    <div className="w-full flex items-center gap-3 my-5">
+                    <div className="w-full flex items-center gap-2 sm:gap-3 my-3 sm:my-5">
                       <span className="h-px flex-1 bg-[#c5a368]/45" />
-                      <span className="text-[11px] text-white/40 whitespace-nowrap">
+                      <span className="text-[10px] sm:text-[11px] text-white/40 whitespace-nowrap">
                         {copy.orStart}
                       </span>
                       <span className="h-px flex-1 bg-[#c5a368]/45" />
                     </div>
 
-                    <div className="w-full flex flex-col gap-2.5">
+                    <div className="w-full flex flex-col gap-1.5 sm:gap-2.5">
                       {copy.starters.map((starter, i) => {
                         const Icon = STARTER_ICONS[i] || Home;
                         return (
@@ -619,25 +612,25 @@ export function ChatClient({
                             type="button"
                             disabled={sending}
                             onClick={() => void sendMessage(starter)}
-                            className="group grid w-full grid-cols-[2.75rem_1px_minmax(0,1fr)_2.5rem] items-center min-h-[3.25rem] rounded-full border border-white/12 bg-transparent hover:border-[#c5a368]/65 hover:bg-white/[0.03] transition-all duration-200 disabled:opacity-50 focus-visible:outline-none focus-visible:border-[#c5a368] focus-visible:ring-1 focus-visible:ring-[#c5a368]/35"
+                            className="group grid w-full cursor-pointer grid-cols-[2.25rem_1px_minmax(0,1fr)_2rem] sm:grid-cols-[2.75rem_1px_minmax(0,1fr)_2.5rem] items-center min-h-[2.75rem] sm:min-h-[3.25rem] rounded-full border border-white/12 bg-transparent hover:border-[#c5a368]/65 hover:bg-white/[0.03] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:border-[#c5a368] focus-visible:ring-1 focus-visible:ring-[#c5a368]/35"
                           >
                             <span className="flex h-full items-center justify-center text-[#c5a368]">
                               <Icon
-                                className="block h-[18px] w-[18px] shrink-0"
+                                className="block h-4 w-4 sm:h-[18px] sm:w-[18px] shrink-0"
                                 strokeWidth={1.75}
                                 aria-hidden
                               />
                             </span>
                             <span
-                              className="h-5 w-px justify-self-center bg-white/18"
+                              className="h-4 sm:h-5 w-px justify-self-center bg-white/18"
                               aria-hidden
                             />
-                            <span className="min-w-0 py-3.5 pl-3.5 pr-2 text-left text-[13px] sm:text-[14px] leading-[1.35] text-white/90">
+                            <span className="min-w-0 py-2.5 sm:py-3.5 pl-2.5 sm:pl-3.5 pr-1.5 sm:pr-2 text-left text-[12px] sm:text-[14px] leading-[1.3] text-white/90">
                               {starter}
                             </span>
                             <span className="flex h-full items-center justify-center text-[#c5a368] transition-transform duration-200 group-hover:translate-x-0.5">
                               <ArrowRight
-                                className="block h-4 w-4 shrink-0"
+                                className="block h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0"
                                 strokeWidth={1.75}
                                 aria-hidden
                               />
@@ -690,19 +683,19 @@ export function ChatClient({
             {/* Composer */}
             <form
               onSubmit={onSubmit}
-              className="border-t border-white/[0.07] p-3 sm:p-4 shrink-0 bg-[#0e1116]/80"
+              className="border-t border-white/[0.07] p-2.5 sm:p-4 shrink-0 bg-[#0e1116]/80"
             >
               {sending ? (
-                <p className="text-[11px] text-[#d7a866]/90 text-center mb-2">
+                <p className="text-[10px] sm:text-[11px] text-[#d7a866]/90 text-center mb-1.5 sm:mb-2">
                   {copy.composingHint}
                 </p>
               ) : messages.length === 0 ? (
-                <p className="text-[11px] text-white/40 text-center mb-2">
+                <p className="text-[10px] sm:text-[11px] text-white/40 text-center mb-1.5 sm:mb-2">
                   {copy.selectPrompt}
                 </p>
               ) : null}
               <div className="flex items-end gap-2 max-w-3xl mx-auto">
-                <div className="flex-1 min-w-0 flex items-end rounded-2xl border border-white/12 bg-white/[0.04] focus-within:border-[#d7a866]/55 transition-colors">
+                <div className="flex-1 min-w-0 flex items-end rounded-xl sm:rounded-2xl border border-white/12 bg-white/[0.04] focus-within:border-[#d7a866]/55 transition-colors">
                   <textarea
                     ref={inputRef}
                     rows={1}
@@ -715,19 +708,19 @@ export function ChatClient({
                       }
                     }}
                     placeholder={copy.placeholder}
-                    className="flex-1 min-w-0 resize-none bg-transparent px-4 py-3 text-[14px] text-white outline-none placeholder:text-white/35 max-h-32"
+                    className="flex-1 min-w-0 resize-none bg-transparent px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-[14px] text-white outline-none placeholder:text-white/35 max-h-28 sm:max-h-32"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={!input.trim()}
                   aria-label={sending ? "Add" : "Send"}
-                  className="shrink-0 w-11 h-11 rounded-xl bg-[linear-gradient(145deg,#e4cfa0,#c9a35e)] text-[#1a1510] flex items-center justify-center disabled:opacity-40 hover:brightness-105 transition shadow-[0_8px_20px_rgba(201,163,94,0.25)]"
+                  className="cursor-pointer shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[linear-gradient(145deg,#e4cfa0,#c9a35e)] text-[#1a1510] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-105 transition shadow-[0_8px_20px_rgba(201,163,94,0.25)]"
                 >
-                  <ArrowUp size={18} strokeWidth={2.5} />
+                  <ArrowUp size={17} strokeWidth={2.5} />
                 </button>
               </div>
-              <p className="text-[10px] text-white/35 text-center mt-2.5">
+              <p className="text-[9px] sm:text-[10px] text-white/35 text-center mt-1.5 sm:mt-2.5">
                 {copy.disclaimer}
               </p>
             </form>
