@@ -619,20 +619,28 @@ export function ChatClient({
                             type="button"
                             disabled={sending}
                             onClick={() => void sendMessage(starter)}
-                            className="group w-full flex items-center gap-0 rounded-full border border-white/12 bg-transparent hover:border-[#c5a368]/65 hover:bg-white/[0.03] transition-all duration-200 disabled:opacity-50 focus-visible:outline-none focus-visible:border-[#c5a368] focus-visible:ring-1 focus-visible:ring-[#c5a368]/35"
+                            className="group grid w-full grid-cols-[2.75rem_1px_minmax(0,1fr)_2.5rem] items-center min-h-[3.25rem] rounded-full border border-white/12 bg-transparent hover:border-[#c5a368]/65 hover:bg-white/[0.03] transition-all duration-200 disabled:opacity-50 focus-visible:outline-none focus-visible:border-[#c5a368] focus-visible:ring-1 focus-visible:ring-[#c5a368]/35"
                           >
-                            <span className="pl-3.5 pr-3 py-3.5 text-[#c5a368] shrink-0">
-                              <Icon size={18} strokeWidth={1.75} />
+                            <span className="flex h-full items-center justify-center text-[#c5a368]">
+                              <Icon
+                                className="block h-[18px] w-[18px] shrink-0"
+                                strokeWidth={1.75}
+                                aria-hidden
+                              />
                             </span>
                             <span
-                              className="w-px self-stretch my-2.5 bg-white/12 shrink-0"
+                              className="h-5 w-px justify-self-center bg-white/18"
                               aria-hidden
                             />
-                            <span className="flex-1 min-w-0 text-left px-3.5 py-3 text-[13px] sm:text-[14px] text-white/90 leading-snug">
+                            <span className="min-w-0 py-3.5 pl-3.5 pr-2 text-left text-[13px] sm:text-[14px] leading-[1.35] text-white/90">
                               {starter}
                             </span>
-                            <span className="pr-3.5 pl-1 text-[#c5a368] shrink-0 transition-transform duration-200 group-hover:translate-x-0.5">
-                              <ArrowRight size={16} strokeWidth={1.75} />
+                            <span className="flex h-full items-center justify-center text-[#c5a368] transition-transform duration-200 group-hover:translate-x-0.5">
+                              <ArrowRight
+                                className="block h-4 w-4 shrink-0"
+                                strokeWidth={1.75}
+                                aria-hidden
+                              />
                             </span>
                           </button>
                         );
